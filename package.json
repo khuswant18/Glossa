@@ -1,0 +1,46 @@
+{
+  "name": "glossa",
+  "displayName": "Glossa",
+  "version": "1.0.0",
+  "description": "Select any text on a web page and see what it means in context.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && node scripts/build.js",
+    "build:fast": "node scripts/build.js",
+    "icons": "node scripts/icons.mjs",
+    "server": "node server/dist/server.mjs",
+    "start": "node scripts/build.js && node server/dist/server.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "node e2e/run.mjs",
+    "e2e:live": "GLOSSA_E2E_LIVE=1 node e2e/run.mjs",
+    "build:vercel": "tsc --noEmit && node scripts/build.js --vercel"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "lucide-react": "^1.16.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@types/chrome": "^0.0.308",
+    "@types/node": "^22.13.9",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^26.0.0",
+    "playwright": "^1.63.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.7"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}
