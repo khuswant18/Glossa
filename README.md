@@ -48,7 +48,7 @@ The whole product deploys as one Vercel project: the website is static, `/v1/*` 
 | `UPSTREAM_API_KEY` | yes | Your provider key. Server-only. |
 | `UPSTREAM_MODEL` | yes | Main model id |
 | `UPSTREAM_FALLBACK_MODEL` | no | Used when the main model is busy |
-| `ALLOWED_EXTENSION_IDS` | recommended | `ldhjakhcccihmklmpphhdmfneofjenmd` (fixed by `public/extension-key.json`) |
+| `ALLOWED_EXTENSION_IDS` | recommended | `ldhjakhcccihmklmpphhdmfneofjenmd` (fixed by `scripts/extension-key.json`) |
 | `PUBLIC_ORIGIN` | recommended | `https://<your-project>.vercel.app` |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | strongly recommended | Shared rate limits across serverless instances (Vercel Marketplace → Upstash). Without them limits are per instance. |
 | `DAILY_LIMIT` / `IP_DAILY_LIMIT` / `BURST_PER_MINUTE` | no | Defaults 100 / 400 / 20 |

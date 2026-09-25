@@ -25,7 +25,7 @@ const onVercel = !!process.env.VERCEL || process.argv.includes('--vercel');
 const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
 const apiBase = (process.env.GLOSSA_API_BASE || (onVercel && vercelUrl ? `https://${vercelUrl}` : 'http://localhost:7717')).replace(/\/+$/, '');
 // Public key only: pins the extension id so the API can be locked to it (ALLOWED_EXTENSION_IDS).
-const extensionKey = JSON.parse(fs.readFileSync(path.join(root, 'public/extension-key.json'), 'utf8'));
+const extensionKey = JSON.parse(fs.readFileSync(path.join(root, 'scripts/extension-key.json'), 'utf8'));
 const websiteUrl = (process.env.GLOSSA_WEBSITE_URL || apiBase).replace(/\/+$/, '');
 const outDir = path.resolve(root, process.env.GLOSSA_OUT || 'dist');
 
