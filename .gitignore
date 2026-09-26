@@ -28,3 +28,6 @@ website/boot.js
 website/robots.txt
 website/assets/
 website/download/
+
+# launch videos (large binaries)
+marketing/
