@@ -169,6 +169,16 @@ async function main() {
     define: { __API_BASE__: '""', __WEBSITE_URL__: '""', __VERSION__: JSON.stringify(pkg.version) },
     logLevel: 'warning',
   });
+  await esbuild({
+    entryPoints: [path.join(root, 'src/site/analytics.ts')],
+    bundle: true,
+    format: 'esm',
+    platform: 'browser',
+    target: 'es2020',
+    minify: true,
+    outfile: path.join(root, 'website/assets/analytics.js'),
+    logLevel: 'warning',
+  });
 
   // 8. Release zip (for the Web Store upload and the website's download link)
   if (!process.env.GLOSSA_OUT) {

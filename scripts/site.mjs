@@ -52,6 +52,7 @@ const head = (title, description, { playground = false } = {}) => `<!doctype htm
 <link rel="stylesheet" href="/site.css">
 <script src="/boot.js"></script>
 <script src="/site.js" defer></script>
+<script src="/assets/analytics.js" type="module"></script>
 ${playground ? '<script src="/assets/playground.js" type="module"></script>\n' : ''}</head>
 <body>`;
 
