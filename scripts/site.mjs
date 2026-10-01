@@ -29,6 +29,8 @@ const ICONS = {
   byok: icon('<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/>'),
   frame: icon('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 9v11"/>'),
   keyboard: icon('<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>'),
+  x: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+  coffee: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 3.5c-.6.8-.6 1.7 0 2.5M12 3.5c-.6.8-.6 1.7 0 2.5"/></svg>',
   menu: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
 };
 
@@ -56,6 +58,10 @@ const head = (title, description, { playground = false } = {}) => `<!doctype htm
 ${playground ? '<script src="/assets/playground.js" type="module"></script>\n' : ''}</head>
 <body>`;
 
+const TWITTER_URL = 'https://x.com/KhuswantRa45688';
+const COFFEE_URL = 'https://buymeacoffee.com/khuswant18';
+const ext = 'target="_blank" rel="noopener noreferrer"';
+
 const nav = `
 <header class="nav" id="nav">
   <div class="wrap">
@@ -66,9 +72,13 @@ const nav = `
       <a href="/#features">Features</a>
       <a href="/#pricing">Pricing</a>
       <a href="/#faq">FAQ</a>
+      <a class="nav-extra" href="${TWITTER_URL}" ${ext}>Follow on X</a>
+      <a class="nav-extra" href="${COFFEE_URL}" ${ext}>Buy me a coffee</a>
     </nav>
     <span class="spacer"></span>
     <div class="nav-ctas">
+      <a class="icon-btn nav-x" href="${TWITTER_URL}" ${ext} aria-label="Follow me on X" title="Follow me on X">${ICONS.x}</a>
+      <a class="pill pill-coffee nav-coffee" href="${COFFEE_URL}" ${ext} aria-label="Buy me a coffee" title="Buy me a coffee">${ICONS.coffee}<span>Buy me a coffee</span></a>
       <a class="pill pill-white" href="/#try">Try it live</a>
       <a class="pill pill-black" href="/install">Add to Chrome</a>
     </div>
@@ -79,6 +89,16 @@ const nav = `
 const footer = `
 <footer class="footer">
   <div class="wrap">
+    <div class="support">
+      <div>
+        <p class="support-title">Glossa is built by one person.</p>
+        <p class="support-sub">If it saves you a few tabs, a coffee keeps it going. Questions or ideas? Message me on X.</p>
+      </div>
+      <div class="support-ctas">
+        <a class="pill pill-coffee" href="${COFFEE_URL}" ${ext}>${ICONS.coffee}<span>Buy me a coffee</span></a>
+        <a class="pill pill-black" href="${TWITTER_URL}" ${ext}>${ICONS.x}<span>Follow on X</span></a>
+      </div>
+    </div>
     <div class="cols">
       <div>
         <p class="wordmark">Glossa</p>
@@ -108,6 +128,13 @@ const footer = `
         <ul>
           <li><a href="/privacy">Privacy policy</a></li>
           <li><a href="/terms">Terms of use</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Connect</h4>
+        <ul>
+          <li><a href="${TWITTER_URL}" ${ext}>X (Twitter)</a></li>
+          <li><a href="${COFFEE_URL}" ${ext}>Buy me a coffee</a></li>
         </ul>
       </div>
     </div>

@@ -14,6 +14,7 @@
   --navy: #1f1d3d;
   --magenta: #ff3d8b;
   --success: #1ea64a;
+  --coffee: #ffdd00;
   --sans: 'Inter', 'SF Pro Display', system-ui, -apple-system, Helvetica, Arial, sans-serif;
   --mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -84,6 +85,10 @@ kbd {
 .pill-outline:hover { background: rgba(0, 0, 0, 0.04); }
 .pill-sm { min-height: 36px; padding: 6px 16px; font-size: 15px; }
 .pill-magenta { background: var(--magenta); color: var(--white); }
+.pill-coffee { background: var(--coffee); color: var(--black); }
+.pill-coffee:hover { box-shadow: 0 6px 18px rgba(255, 221, 0, 0.45); }
+.icon-btn { display: inline-grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--soft); color: var(--black); text-decoration: none; transition: background-color 0.2s var(--ease); }
+.icon-btn:hover { background: var(--hairline); }
 
 /* ---------- Nav ---------- */
 .nav {
@@ -102,7 +107,8 @@ kbd {
 .nav-links a { font: 330 16px/1 var(--sans); padding: 10px 12px; border-radius: 50px; text-decoration: none; transition: background-color 0.2s; }
 .nav-links a:hover { background: var(--soft); }
 .nav .spacer { flex: 1; }
-.nav-ctas { display: flex; gap: 8px; }
+.nav-ctas { display: flex; align-items: center; gap: 8px; }
+.nav-links .nav-extra { display: none; }
 .nav-ctas .pill { min-height: 40px; padding: 6px 18px; font-size: 16px; }
 .nav-toggle { display: none; width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--soft); cursor: pointer; place-items: center; }
 
@@ -396,7 +402,13 @@ kbd {
 
 /* ---------- Footer ---------- */
 .footer { padding: 64px 0 40px; border-top: 1px solid var(--hairline); }
-.footer .cols { display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: 32px; }
+.footer .support { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px 48px; margin-bottom: 64px; padding: 32px 40px; border-radius: 24px; background: var(--cream); }
+.footer .support-title { margin: 0 0 6px; font: 540 26px/1.25 var(--sans); letter-spacing: -0.3px; }
+.footer .support-sub { margin: 0; max-width: 520px; font: 330 17px/1.45 var(--sans); }
+.footer .support-ctas { display: flex; flex-wrap: wrap; gap: 10px; }
+.footer .support-ctas a { font: 480 17px/1.4 var(--sans); }
+.footer .support-ctas a:hover { text-decoration: none; }
+.footer .cols { display: grid; grid-template-columns: 2fr repeat(4, 1fr); gap: 32px; }
 .footer .wordmark { font: 340 48px/1 var(--sans); letter-spacing: -1px; margin: 0 0 12px; }
 .footer .blurb { margin: 0; max-width: 300px; font: 330 16px/1.45 var(--sans); }
 .footer h4 { margin: 0 0 16px; font: 400 12px/1 var(--mono); letter-spacing: 0.6px; text-transform: uppercase; }
@@ -464,10 +476,18 @@ kbd {
   .mk-page { padding: 84px 32px 32px; }
   .pg { grid-template-columns: 1fr; }
 }
+@media (max-width: 1240px) {
+  .nav .wrap { gap: 20px; }
+  .nav-ctas .nav-coffee { width: 40px; padding: 0; }
+  .nav-ctas .nav-coffee span { display: none; }
+  .nav-ctas .nav-coffee svg { flex: none; }
+}
 @media (max-width: 960px) {
   .nav-links, .nav-ctas .pill-white { display: none; }
+  .nav-links.open .nav-extra { display: block; }
   .nav-toggle { display: inline-grid; }
-  .nav-links.open { display: flex; position: fixed; inset: 64px 0 0 0; flex-direction: column; gap: 0; padding: 16px 24px; background: var(--white); z-index: 60; }
+  /* .nav's backdrop-filter makes it the containing block for fixed children, so size the menu explicitly. */
+  .nav-links.open { display: flex; position: fixed; inset: 64px 0 auto 0; height: calc(100vh - 64px); height: calc(100dvh - 64px); overflow-y: auto; flex-direction: column; gap: 0; padding: 16px 24px; background: var(--white); z-index: 60; }
   .nav-links.open a { padding: 20px 0; border-bottom: 1px solid var(--hairline-soft); border-radius: 0; font-size: 26px; font-weight: 340; }
   .steps, .features { grid-template-columns: 1fr 1fr; }
   .block h2, .section-head h2, .pg h2 { font-size: 48px; }
@@ -481,6 +501,7 @@ kbd {
   .block, .stage { border-radius: 0; margin-left: -24px; margin-right: -24px; padding: 40px 24px; }
   .steps, .features, .plans { grid-template-columns: 1fr; }
   .footer .cols { grid-template-columns: 1fr 1fr; }
+  .footer .support { padding: 28px 24px; }
   .doc, .article { padding: 48px 24px 72px; }
   .doc h1, .article h1 { font-size: 42px; }
   .closer h2 { font-size: 44px; }
@@ -494,6 +515,13 @@ kbd {
   .hero .lede { font-size: 19px; }
   .cta-row .pill, .closer .pill { width: 100%; }
   .nav-ctas .pill { padding: 6px 14px; font-size: 15px; }
+  .nav .wrap { gap: 10px; }
+  .nav-ctas { gap: 6px; }
+  .nav-ctas .nav-x { display: none; }
+  .nav-ctas .nav-coffee { padding: 0; }
+  .nav-ctas .pill-black { padding: 6px 12px; }
+  .nav-toggle { width: 40px; height: 40px; }
+  .footer .support-ctas, .footer .support-ctas .pill { width: 100%; }
   .block h2, .section-head h2, .pg h2 { font-size: 38px; }
   .block .sub, .section-head .sub { font-size: 20px; }
   .pg-text { padding: 20px; font-size: 18px; }
@@ -502,4 +530,7 @@ kbd {
   .footer .wordmark { font-size: 36px; }
   .plan .price { font-size: 48px; }
   .faq summary { font-size: 19px; }
+}
+@media (max-width: 380px) {
+  .nav-ctas .pill-black { padding: 6px 10px; font-size: 14px; }
 }
