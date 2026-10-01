@@ -211,7 +211,7 @@ async function writeVercelOutput() {
   });
   fs.writeFileSync(
     path.join(fn, '.vc-config.json'),
-    JSON.stringify({ runtime: 'nodejs20.x', handler: 'index.mjs', launcherType: 'Nodejs', shouldAddHelpers: false, maxDuration: 30 }, null, 2)
+    JSON.stringify({ runtime: 'nodejs24.x', handler: 'index.mjs', launcherType: 'Nodejs', shouldAddHelpers: false, maxDuration: 30 }, null, 2)
   );
   fs.writeFileSync(path.join(fn, 'package.json'), JSON.stringify({ type: 'module' }));
 
