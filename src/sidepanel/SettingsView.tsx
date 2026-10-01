@@ -148,7 +148,7 @@ export function SettingsView({ settings, update }: { settings: Settings; update:
             />
             <div className="set-help">
               {settings.aiSource === 'hosted'
-                ? 'No setup needed. A daily allowance of free explanations, served by Glossa.'
+                ? 'No API key needed. A daily allowance of free explanations, served by Glossa.'
                 : 'Unlimited use, billed by your provider. Your key is stored only in this browser and sent only to that provider.'}
             </div>
           </div>

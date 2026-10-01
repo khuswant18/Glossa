@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Clock, Settings as Gear } from 'lucide-react';
 import { explain, followUp } from '../ai/client';
+import { warmUp } from '../ai/hosted';
 import { AiError, toAiError } from '../ai/errors';
 import {
   KEYS,
@@ -59,6 +60,7 @@ export function App() {
 
   useEffect(() => {
     getHistory().then(setHistory);
+    getSettings().then((s) => s.aiSource === 'hosted' && warmUp(s.serverUrl));
   }, []);
 
   const run = useCallback(
@@ -317,7 +319,7 @@ export function App() {
                 onSeeAll={() => setView('history')}
               />
             )}
-            {current.status === 'loading' && <LoadingView selection={current.selection} onCancel={cancel} />}
+            {current.status === 'loading' && <LoadingView key={current.selection.text} selection={current.selection} onCancel={cancel} />}
             {current.status === 'error' && (
               <ErrorView
                 current={current}

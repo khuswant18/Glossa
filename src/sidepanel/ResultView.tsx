@@ -61,6 +61,11 @@ function Quote({ text, truncated }: { text: string; truncated?: boolean }) {
 }
 
 export function LoadingView({ selection, onCancel }: { selection: CapturedSelection; onCancel: () => void }) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setSlow(true), 6000);
+    return () => window.clearTimeout(t);
+  }, []);
   return (
     <>
       <SourceLine selection={selection} />
@@ -71,7 +76,7 @@ export function LoadingView({ selection, onCancel }: { selection: CapturedSelect
         <div className="sk" style={{ width: '92%' }} />
         <div className="sk" style={{ width: '70%' }} />
         <div className="loading-foot">
-          <span>Reading the context…</span>
+          <span>{slow ? 'Still working. The first lookup after a break can take a few extra seconds…' : 'Reading the context…'}</span>
           <button className="btn btn-ghost btn-sm" onClick={onCancel}>
             Cancel
           </button>

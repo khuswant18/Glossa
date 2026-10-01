@@ -27,5 +27,6 @@ export const LIMITS = {
   maxQuestionChars: 500,
   historyItems: 500,
   cacheItems: 200,
-  requestTimeoutMs: 30000,
+  // Covers a cold start, the server's 24s model budget and one retry.
+  requestTimeoutMs: 40000,
 } as const;

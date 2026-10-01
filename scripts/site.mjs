@@ -174,7 +174,7 @@ const index = page(
       <a class="pill pill-black" href="/install">Add to Chrome, it’s free</a>
       <a class="pill pill-outline" href="#try">Try it without installing</a>
     </div>
-    <p class="cta-note">No account · Chrome, Edge, Brave, Arc · Your own AI key optional</p>
+    <p class="cta-note">No API key needed · No account · Chrome, Edge, Brave, Arc</p>
 
     <div class="stage reveal" aria-label="Animation: a phrase is selected, the Explain button appears, and the side panel shows its meaning">
       <div class="browser">
@@ -340,6 +340,7 @@ const index = page(
         <div class="price">$0<small>forever</small></div>
         <p class="sub">A daily allowance of explanations, on us.</p>
         <ul>
+          <li>No API key needed: install and it just works</li>
           <li>Every feature: follow-ups, history, export, 20 languages</li>
           <li>No account, no card</li>
           <li>Allowance resets every day</li>
@@ -367,6 +368,7 @@ const index = page(
       <p class="eyebrow">FAQ</p>
       <h2>Questions, answered.</h2>
       <div class="faq">
+        <details><summary>Do I need an API key?</summary><div class="answer"><p>No. Install the extension and it works right away on Glossa’s free service, with a daily allowance of explanations. An API key is only for people who want unlimited use or a specific model: add one in Settings and Glossa uses your provider instead.</p></div></details>
         <details><summary>What exactly gets sent when I ask for an explanation?</summary><div class="answer"><p>The text you selected, the sentence it sits in, up to about 1,800 characters of nearby text, the page title and the site’s domain. Never the whole page, your history, or anything you didn’t select. You can switch the nearby text off in Settings.</p></div></details>
         <details><summary>Which AI model does the free plan use?</summary><div class="answer"><p>One we choose and tune for fast, accurate definitions, and we upgrade it as better ones appear. Want a specific model? Add your own key and pick it.</p></div></details>
         <details><summary>How do I use my own API key?</summary><div class="answer"><p>In the extension: open the side panel, then Settings, then “My own API key”. Pick a provider, paste the key, press Save and test. You can also try your key in the playground above before installing.</p></div></details>
@@ -400,6 +402,11 @@ const install = page(
   <h1>Get Glossa running in a minute.</h1>
   <p class="lead">Works in Chrome, Edge, Brave and Arc, version 116 or newer.</p>
 
+  <div class="callout">
+    <b>No API key needed.</b>
+    <p>Glossa works as soon as it’s installed, using our free service with a daily allowance. You don’t need a Groq, OpenAI or any other key. Adding <a href="#own-key">your own key</a> is optional, for unlimited use.</p>
+  </div>
+
   <div class="block block-cream">
     <ol class="install-steps">
       <li><div><b>Download</b><a href="/download/glossa-extension.zip" download>Download Glossa (zip)</a> and unzip it.</div></li>
@@ -421,7 +428,7 @@ const install = page(
   <p>Shortcut taken by another extension? Open <code>chrome://extensions/shortcuts</code> and choose a new one for “Explain the selected text”.</p>
 
   <h2 id="own-key">Use your own API key</h2>
-  <p>The free plan needs no setup. For unlimited use, open the side panel → Settings → <b>My own API key</b>, pick a provider, paste your key and press <b>Save and test</b>. You can also <a href="/#try">try your key on the homepage</a> first.</p>
+  <p><b>Optional.</b> The free plan needs no key and no setup. For unlimited use, open the side panel → Settings → <b>My own API key</b>, pick a provider, paste your key and press <b>Save and test</b>. You can also <a href="/#try">try your key on the homepage</a> first.</p>
   <table>
     <tr><th>Provider</th><th>Where to get a key</th></tr>
     <tr><td>OpenAI</td><td><a href="https://platform.openai.com/api-keys" rel="noreferrer">platform.openai.com/api-keys</a></td></tr>

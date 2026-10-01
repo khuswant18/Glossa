@@ -133,4 +133,5 @@ export type Message =
   | { type: 'EXPLAIN_SELECTION'; selection: CapturedSelection; trigger: Trigger }
   | { type: 'EXPLAIN_ACTIVE_TAB'; trigger: Trigger }
   | { type: 'GET_SHORTCUT' }
+  | { type: 'WARM_UP' }
   | { type: 'TOAST'; message: string; tone?: 'info' | 'warn' };

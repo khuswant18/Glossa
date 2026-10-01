@@ -35,6 +35,8 @@ export function initContent(): void {
       dismissedFor = window.getSelection()?.toString() || '';
       ui.hideChip();
     },
+    // Pointing at Explain is a strong sign a lookup is coming; plain selecting/copying is not.
+    onChipHover: () => send({ type: 'WARM_UP' }),
   });
 
   const runtimeOk = () => {

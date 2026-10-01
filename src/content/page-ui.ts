@@ -39,10 +39,12 @@ export class PageUi {
   private toastTimer: number | undefined;
   private onChipClick: () => void;
   private onChipDismiss: () => void;
+  private onChipHover: () => void;
 
-  constructor(handlers: { onChipClick: () => void; onChipDismiss: () => void }) {
+  constructor(handlers: { onChipClick: () => void; onChipDismiss: () => void; onChipHover: () => void }) {
     this.onChipClick = handlers.onChipClick;
     this.onChipDismiss = handlers.onChipDismiss;
+    this.onChipHover = handlers.onChipHover;
   }
 
   private ensure(): void {
@@ -64,6 +66,7 @@ export class PageUi {
       '<span class="dot"></span><span class="label">Explain</span><span class="kbd"></span>' +
       '<span class="x" title="Hide" aria-label="Hide">' +
       '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 1l8 8M9 1L1 9"/></svg></span>';
+    this.chip.addEventListener('pointerenter', () => this.onChipHover());
     // mousedown + preventDefault keeps the page selection alive while clicking.
     this.chip.addEventListener('mousedown', (e) => {
       e.preventDefault();

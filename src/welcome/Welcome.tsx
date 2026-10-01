@@ -64,10 +64,10 @@ export function Welcome() {
           </div>
           <div className="w-cell">
             <span className="w-n">02</span>
-            <h3>Free to start</h3>
+            <h3>No API key needed</h3>
             <p>
-              A daily allowance of free explanations, no account needed. Need more? Use your own OpenAI, Anthropic, Groq, Gemini
-              or OpenRouter key.
+              Glossa already works: you get a daily allowance of free explanations, no account or key required. Want unlimited?
+              Optionally add your own OpenAI, Anthropic, Groq, Gemini or OpenRouter key.
             </p>
             <button className="btn btn-secondary btn-sm" onClick={() => openPanel('settings')}>
               Open settings

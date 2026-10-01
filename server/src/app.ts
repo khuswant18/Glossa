@@ -53,7 +53,8 @@ export function configFromEnv(env: NodeJS.ProcessEnv, websiteDir: string): Serve
     allowedExtensionIds: (env.ALLOWED_EXTENSION_IDS || '').split(',').map((s) => s.trim()).filter(Boolean),
     websiteDir: env.WEBSITE_DIR || websiteDir,
     publicOrigin: (env.PUBLIC_ORIGIN || '').replace(/\/+$/, ''),
-    upstreamTimeoutMs: num(env.UPSTREAM_TIMEOUT_MS, 20000),
+    // Total time for primary + fallback model; stays under the Vercel function's 30s maxDuration.
+    upstreamTimeoutMs: num(env.UPSTREAM_TIMEOUT_MS, 24000),
     // Serverless file systems are read-only; there feedback goes to the function logs instead.
     feedbackFile: env.FEEDBACK_FILE || (env.VERCEL ? '' : path.resolve(websiteDir, '..', 'server', 'data', 'feedback.jsonl')),
     redisUrl: (env.UPSTASH_REDIS_REST_URL || env.KV_REST_API_URL || '').replace(/\/+$/, ''),
@@ -315,7 +316,12 @@ async function callUpstream(cfg: ServerConfig, system: string, user: string): Pr
   const models = [cfg.upstreamModel, cfg.upstreamFallbackModel].filter((m, i, a) => m && a.indexOf(m) === i);
   let lastError: HttpError = new HttpError(503, 'upstream_unavailable', 'The Glossa service is busy. Try again in a moment.');
 
-  for (const model of models) {
+  const deadline = Date.now() + cfg.upstreamTimeoutMs;
+  for (const [i, model] of models.entries()) {
+    const left = deadline - Date.now();
+    if (i > 0 && left <= 0) break;
+    // Leave the fallback model a third of the budget if the primary hangs.
+    const budget = i < models.length - 1 ? Math.round(left * 2 / 3) : left;
     try {
       const res = await fetch(cfg.upstreamUrl, {
         method: 'POST',
@@ -330,7 +336,7 @@ async function callUpstream(cfg: ServerConfig, system: string, user: string): Pr
           max_tokens: 1200,
           response_format: { type: 'json_object' },
         }),
-        signal: AbortSignal.timeout(cfg.upstreamTimeoutMs),
+        signal: AbortSignal.timeout(budget),
       });
       if (res.ok) {
         const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };

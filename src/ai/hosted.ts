@@ -10,8 +10,28 @@ export function hostedBase(serverUrlOverride?: string): string {
   return base;
 }
 
-/** POST to the hosted API. The server owns the model choice and credentials. */
+/**
+ * POST to the hosted API. The server owns the model choice and credentials.
+ * Retries once on failures typical of a cold serverless start (connection drop, platform error page, 502/503).
+ */
 export async function hostedCall<T>(
+  path: '/v1/explain' | '/v1/follow-up',
+  payload: unknown,
+  opts: { signal?: AbortSignal; serverUrl?: string }
+): Promise<T> {
+  try {
+    return await hostedOnce<T>(path, payload, opts);
+  } catch (err) {
+    if (!retryable.has(err as object) || opts.signal?.aborted) throw err;
+    await new Promise((r) => setTimeout(r, 800));
+    return hostedOnce<T>(path, payload, opts);
+  }
+}
+
+const retryable = new WeakSet<object>();
+const transient = (e: AiError): AiError => (retryable.add(e), e);
+
+async function hostedOnce<T>(
   path: '/v1/explain' | '/v1/follow-up',
   payload: unknown,
   opts: { signal?: AbortSignal; serverUrl?: string }
@@ -30,7 +50,8 @@ export async function hostedCall<T>(
       signal: opts.signal,
     });
   } catch (err) {
-    throw toAiError(err, WHO);
+    const e = toAiError(err, WHO);
+    throw e.code === 'network' && navigator.onLine !== false ? transient(e) : e;
   }
 
   const quota = readQuota(res.headers);
@@ -38,6 +59,8 @@ export async function hostedCall<T>(
 
   const type = res.headers.get('content-type') || '';
   if (!type.includes('application/json')) {
+    // The hosting platform's own error page (cold start failure, function timeout): worth one retry.
+    if (res.status >= 500) throw transient(new AiError('server', `${WHO} is waking up or busy. Try again in a moment.`));
     // Something else is listening at this address (another local app, a captive portal, a proxy page).
     throw new AiError(
       'network',
@@ -59,9 +82,23 @@ export async function hostedCall<T>(
     if (code === 'rate_limited') throw new AiError('rate-limit', message, retry);
     if (code === 'invalid_request') throw new AiError('bad-request', message);
     if (code === 'timeout') throw new AiError('timeout', message);
-    throw new AiError('server', message);
+    const e = new AiError('server', message);
+    throw res.status === 502 || res.status === 503 ? transient(e) : e;
   }
   return body as T;
+}
+
+/**
+ * Fire-and-forget request that wakes the serverless API when a lookup looks imminent
+ * (pointer on the Explain button, panel opened), so the cold start overlaps with that moment.
+ * /health never calls the model.
+ */
+let lastWarm = 0;
+export function warmUp(serverUrl?: string): void {
+  const now = Date.now();
+  if (now - lastWarm < 4 * 60_000) return;
+  lastWarm = now;
+  fetch(`${hostedBase(serverUrl)}/health`, { cache: 'no-store' }).catch(() => undefined);
 }
 
 export async function fetchUsage(serverUrl?: string): Promise<Quota | undefined> {

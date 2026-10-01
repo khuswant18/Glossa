@@ -4,6 +4,7 @@
  * dispatch(): the selection is queued in storage.session and the side panel picks it up.
  */
 
+import { warmUp } from '../ai/hosted';
 import { WEBSITE_URL } from '../shared/brand';
 import { DEFAULT_SETTINGS, KEYS, mergeSettings, randomId, setNotice, setPending } from '../shared/storage';
 import type { CapturedSelection, Message, PanelNotice, Settings, Trigger } from '../shared/types';
@@ -231,6 +232,11 @@ chrome.runtime.onMessage.addListener((raw, sender, sendResponse) => {
     if (sender.tab?.id !== undefined && sender.frameId !== undefined) {
       lastSelectionFrame.set(sender.tab.id, sender.frameId);
     }
+    return false;
+  }
+
+  if (msg.type === 'WARM_UP') {
+    if (settings.aiSource === 'hosted' && !settings.paused) warmUp(settings.serverUrl);
     return false;
   }
 
