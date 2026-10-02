@@ -59,6 +59,7 @@ async function main() {
           sidepanel: path.join(root, 'sidepanel.html'),
           popup: path.join(root, 'popup.html'),
           welcome: path.join(root, 'welcome.html'),
+          reader: path.join(root, 'reader.html'),
         },
       },
     },
@@ -92,8 +93,11 @@ async function main() {
     },
   });
 
-  // 4. Icons
+  // 4. Icons, plus PDF.js data the reader needs for some PDFs (CJK character maps, standard fonts, image decoders)
   fs.cpSync(path.join(root, 'public/icons'), path.join(outDir, 'icons'), { recursive: true });
+  for (const dir of ['cmaps', 'standard_fonts', 'wasm']) {
+    fs.cpSync(path.join(root, 'node_modules/pdfjs-dist', dir), path.join(outDir, 'pdfjs', dir), { recursive: true });
+  }
 
   // 5. Manifest
   const apiOrigin = new URL(apiBase).origin;
@@ -122,7 +126,7 @@ async function main() {
         match_about_blank: true,
       },
     ],
-    permissions: ['sidePanel', 'storage', 'activeTab', 'scripting', 'contextMenus', 'favicon'],
+    permissions: ['sidePanel', 'storage', 'unlimitedStorage', 'activeTab', 'scripting', 'contextMenus', 'favicon'],
     host_permissions: [
       `${apiOrigin}/*`,
       'https://api.openai.com/*',

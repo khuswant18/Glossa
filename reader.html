@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Glossa reader</title>
+  </head>
+  <body>
+    <header class="r-top">
+      <span class="r-brand"><span class="r-mark" aria-hidden="true"></span>Glossa reader</span>
+      <span class="r-name" id="r-name"></span>
+      <span class="r-spacer"></span>
+      <span class="r-pages num" id="r-pages"></span>
+      <button class="btn btn-ghost btn-sm" id="r-zoom-out" aria-label="Zoom out" title="Zoom out">−</button>
+      <button class="btn btn-ghost btn-sm" id="r-zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
+      <label class="btn btn-secondary btn-sm" for="r-file">Open PDF…</label>
+      <input type="file" id="r-file" accept="application/pdf,.pdf" hidden />
+    </header>
+    <main id="r-main">
+      <section class="r-empty" id="r-empty">
+        <h1>Read PDFs with Glossa</h1>
+        <p>Chrome’s built-in PDF viewer doesn’t let extensions read your selection. Open the PDF here and select text as usual: press <kbd id="r-key">⌥E</kbd> or click <b>Explain</b>.</p>
+        <label class="btn btn-primary" for="r-file">Choose a PDF from this computer</label>
+        <p class="muted">Or drop a PDF anywhere on this page. Files open here only; nothing is uploaded.</p>
+        <div class="r-msg" id="r-msg" role="status" hidden></div>
+      </section>
+      <div class="r-doc" id="r-doc" hidden></div>
+    </main>
+    <script type="module" src="/src/reader/main.ts"></script>
+  </body>
+</html>

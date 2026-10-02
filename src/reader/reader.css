@@ -1,0 +1,100 @@
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font, Inter, system-ui, sans-serif);
+}
+.r-top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+.r-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+.r-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--primary);
+}
+.r-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--muted-strong);
+}
+.r-spacer {
+  flex: 1;
+}
+.r-pages {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.r-top label.btn {
+  cursor: pointer;
+}
+.r-empty {
+  max-width: 560px;
+  margin: 12vh auto 0;
+  padding: 0 24px;
+}
+.r-empty h1 {
+  margin: 0 0 10px;
+  font-size: 28px;
+  color: var(--text-strong);
+}
+.r-empty p {
+  margin: 0 0 18px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted-strong);
+}
+.r-empty label.btn {
+  display: inline-flex;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+.r-msg {
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--primary) 32%, var(--line));
+  background: color-mix(in srgb, var(--primary) 7%, transparent);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.r-doc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 16px 64px;
+}
+.r-page {
+  position: relative;
+  max-width: 100%;
+  background: #fff;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
+}
+.r-page canvas {
+  display: block;
+}
+.r-page .textLayer ::selection {
+  background: rgba(252, 213, 53, 0.45);
+}
