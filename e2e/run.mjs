@@ -81,7 +81,23 @@ const mock = http.createServer((req, res) => {
     const isFollow = system.includes('{"answer"');
     const task = (user.match(/TASK: (.*)/) || [])[1] || '';
     const question = (user.match(/READER'S QUESTION: (.*)/) || [])[1] || '';
-    upstreamLog.push({ text, sentence, language, isFollow, task, question });
+    const pageDef = (user.match(/DEFINED ON THIS PAGE:\n"""([\s\S]*?)"""/) || [])[1] || '';
+    const native = (user.match(/READER'S FIRST LANGUAGE: (.*)/) || [])[1] || '';
+    upstreamLog.push({ text, sentence, language, isFollow, task, question, pageDef, native });
+    // Grounding fields: quote the page definition or the sentence; "storm" gets a quote that is NOT on the page.
+    const grounding = {};
+    if (pageDef) {
+      const m = pageDef.match(/^(.*) \(([A-Za-z]+)\)$/);
+      if (m) grounding.expansion = m[1];
+      grounding.fromPage = pageDef;
+      grounding.basis = 'page';
+    } else if (text === 'storm') {
+      grounding.fromPage = 'a sentence that never appeared on the page';
+      grounding.basis = 'page';
+    } else if (sentence) {
+      grounding.fromPage = sentence;
+    }
+    if (native) grounding.gloss = `Gloss in ${native}`;
     if (text === 'slowword') await sleep(2500);
     const content = isFollow
       ? JSON.stringify({ answer: `**Follow-up** for ${text}: ${question || task.slice(0, 30)}\n- point one\n- point two` })
@@ -94,11 +110,35 @@ const mock = http.createServer((req, res) => {
           explanation: 'A plain-language elaboration of the selected text.',
           example: `An example sentence using ${text}.`,
           synonyms: ['alpha', 'beta'],
+          ...grounding,
         });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ choices: [{ message: { content } }] }));
   });
 });
+
+// A tiny but valid one-page PDF with real text (Helvetica), for the reader test.
+function makePdf(lines) {
+  const esc = (t) => t.replace(/[\\()]/g, (c) => `\\${c}`);
+  const stream = `BT /F1 14 Tf 72 720 Td 20 TL ${lines.map((l) => `(${esc(l)}) Tj T*`).join(' ')} ET`;
+  const objs = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ];
+  let out = '%PDF-1.4\n';
+  const offsets = [];
+  objs.forEach((o, i) => {
+    offsets.push(out.length);
+    out += `${i + 1} 0 obj\n${o}\nendobj\n`;
+  });
+  const xref = out.length;
+  out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}`;
+  out += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(out, 'latin1');
+}
 
 // ---------------------------------------------------------------------------
 // Servers
@@ -106,7 +146,15 @@ const mock = http.createServer((req, res) => {
 const children = [];
 function startServer(port, env) {
   const child = spawn(process.execPath, [path.join(root, 'server/dist/server.mjs')], {
-    env: { ...process.env, PORT: String(port), LOG: '0', FEEDBACK_FILE: path.join(os.tmpdir(), `glossa-fb-${port}.jsonl`), ...env },
+    // Test servers never touch the real shared store, even if server/.env has Upstash credentials.
+    env: {
+      ...process.env,
+      PORT: String(port),
+      LOG: '0',
+      FEEDBACK_FILE: path.join(os.tmpdir(), `glossa-fb-${port}.jsonl`),
+      ...(port === LIVE_PORT ? {} : { UPSTASH_REDIS_REST_URL: '', UPSTASH_REDIS_REST_TOKEN: '', KV_REST_API_URL: '', KV_REST_API_TOKEN: '' }),
+      ...env,
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   child.stderr.on('data', (d) => process.stderr.write(`[server ${port}] ${d}`));
@@ -147,7 +195,7 @@ async function main() {
   }
   await new Promise((r) => mock.listen(MOCK_PORT, r));
   const mockUrl = `http://127.0.0.1:${MOCK_PORT}/v1/chat/completions`;
-  startServer(API_PORT, { UPSTREAM_URL: mockUrl, UPSTREAM_API_KEY: 'mock', DAILY_LIMIT: '1000', BURST_PER_MINUTE: '1000' });
+  startServer(API_PORT, { UPSTREAM_URL: mockUrl, UPSTREAM_API_KEY: 'mock', DAILY_LIMIT: '1000', BURST_PER_MINUTE: '1000', STATS_TOKEN: 'e2e-stats' });
   startServer(QUOTA_PORT, { UPSTREAM_URL: mockUrl, UPSTREAM_API_KEY: 'mock', DAILY_LIMIT: '1', BURST_PER_MINUTE: '1000' });
   assert(await waitHealthy(API_PORT), 'mock-backed server did not start');
   assert(await waitHealthy(QUOTA_PORT), 'quota server did not start');
@@ -623,6 +671,349 @@ async function main() {
     await demo.locator('[data-glossa-chip]').waitFor({ state: 'visible' });
   });
 
+  // ---- grounding, word list, "seen it before", anonymous counts ---------------------------
+  const stats = async () => {
+    const r = await fetch(`${API}/v1/stats?days=1`, { headers: { Authorization: 'Bearer e2e-stats' } });
+    return (await r.json()).days[0];
+  };
+  // Viewport centre of `word` inside `selector` on a page (for real mouse hovering).
+  const wordPoint = (target, selector, word) =>
+    target.evaluate(
+      ({ selector, word }) => {
+        const el = document.querySelector(selector);
+        el.scrollIntoView({ block: 'center', behavior: 'instant' });
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+          const i = node.data.indexOf(word);
+          if (i >= 0) {
+            const r = document.createRange();
+            r.setStart(node, i);
+            r.setEnd(node, i + word.length);
+            const b = r.getBoundingClientRect();
+            return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+          }
+        }
+        throw new Error(`"${word}" not found`);
+      },
+      { selector, word }
+    );
+  const seenCount = (target) => target.evaluate(() => Number(document.documentElement.dataset.glossaSeenCount || 0));
+  const waitSeen = async (target, pred, msg) => {
+    const end = Date.now() + 8000;
+    let n = -1;
+    while (Date.now() < end) {
+      n = await seenCount(target);
+      if (pred(n)) return n;
+      await sleep(150);
+    }
+    throw new Error(`${msg} (underlined: ${n})`);
+  };
+
+  await step('grounded answer: quotes the page, drops a quote that is not on the page', async () => {
+    upstreamLog.length = 0;
+    await select(demo, '#p-bank', 'rower');
+    await demo.keyboard.press('Alt+KeyE');
+    await waitResult('rower');
+    const quote = panel.getByTestId('from-page');
+    await quote.waitFor();
+    assert((await quote.innerText()).includes('The rower pulled the boat onto the bank'), 'quote text shown');
+    await panel.screenshot({ path: path.join(artifacts, 'panel-grounded.png'), fullPage: true });
+    await select(demo, '#p-later', 'storm');
+    await demo.keyboard.press('Alt+KeyE');
+    await waitResult('storm');
+    eq(await panel.getByTestId('from-page').count(), 0, 'invented quote dropped');
+  });
+
+  await step('show on page: flashes the quoted sentence in the open page; opens a new tab otherwise', async () => {
+    upstreamLog.length = 0;
+    await select(demo, '#p-bank', 'watched');
+    await demo.keyboard.press('Alt+KeyE');
+    await waitResult('watched');
+    await clearSelection(demo);
+    await demo.bringToFront();
+    await panel.getByTestId('show-on-page').click();
+    await demo.locator('[data-glossa-flash]').first().waitFor({ state: 'attached', timeout: 4000 });
+    await demo.screenshot({ path: path.join(artifacts, 'demo-show-on-page.png') });
+    // With another tab in front, it opens the page at the sentence instead.
+    const other = await context.newPage();
+    await other.goto('about:blank');
+    await other.bringToFront();
+    const opened = context.waitForEvent('page');
+    await panel.getByTestId('show-on-page').click();
+    const fresh = await opened;
+    await fresh.waitForLoadState('domcontentloaded');
+    assert(fresh.url().includes('#:~:text='), `opened at the sentence: ${fresh.url()}`);
+    await fresh.close();
+    await other.close();
+    await demo.bringToFront();
+  });
+
+  await step('acronym: the page’s own definition reaches the model and the full form shows', async () => {
+    upstreamLog.length = 0;
+    await select(demo, '#p-nim2', 'NIM');
+    await demo.keyboard.press('Alt+KeyE');
+    await waitResult('NIM');
+    eq(upstreamLog[0].pageDef, 'net interest margin (NIM)', 'page definition sent');
+    eq(await panel.getByTestId('expansion').innerText(), 'net interest margin', 'expansion shown');
+    assert(/defined on this page/i.test(await panel.getByTestId('from-page').innerText()), 'defined-on-page label');
+    await panel.screenshot({ path: path.join(artifacts, 'panel-acronym.png'), fullPage: true });
+  });
+
+  await step('reader profile: first language adds a one-line gloss', async () => {
+    await openView('Settings');
+    await panel.getByTestId('native-language').selectOption('Hindi');
+    upstreamLog.length = 0;
+    await select(demo, '#p-nim', 'deposit costs');
+    await demo.keyboard.press('Alt+KeyE');
+    await waitResult('deposit costs');
+    eq(upstreamLog[0].native, 'Hindi', 'first language sent');
+    eq(await panel.getByTestId('gloss').innerText(), 'Gloss in Hindi', 'gloss shown');
+    await setSettings(panel, { nativeLanguage: '' });
+  });
+
+  await step('word list: repeats counted, search, sort, sightings, explain again, Anki + CSV export', async () => {
+    upstreamLog.length = 0;
+    await select(demo, '#p-later', 'bank');
+    await demo.keyboard.press('Alt+KeyE');
+    await waitResult('bank');
+    await openView('Your words');
+    await panel.getByTestId('words-list').waitFor();
+    const summary = await panel.getByTestId('words-summary').innerText();
+    assert(/looked up more than once/.test(summary), `summary mentions repeats: ${summary}`);
+    await panel.getByTestId('sort-count').click();
+    const first = panel.getByTestId('word-row').first();
+    assert((await first.locator('.row-title').innerText()).startsWith('bank'), 'most looked up first');
+    eq(await first.getByTestId('word-count').innerText(), '×2', 'bank counted twice');
+    await panel.screenshot({ path: path.join(artifacts, 'panel-words.png'), fullPage: true });
+    await first.locator('.row').click();
+    const detail = panel.getByTestId('word-detail');
+    await detail.waitFor();
+    eq(await detail.locator('.sightings li').count(), 2, 'two sightings for bank');
+    assert((await detail.innerText()).includes('burst its bank again'), 'new sighting sentence');
+    await panel.screenshot({ path: path.join(artifacts, 'panel-words-detail.png'), fullPage: true });
+    await panel.getByTestId('words-search').fill('nim');
+    await waitCount(panel.getByTestId('word-row'), 1, 'search finds NIM');
+    await panel.getByTestId('words-search').fill('');
+    await panel.evaluate(() => {
+      window.__dl = [];
+      const orig = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function () {
+        if (this.download) {
+          const name = this.download;
+          window.__dl.push(fetch(this.href).then((r) => r.text()).then((text) => ({ name, text })));
+          return;
+        }
+        return orig.call(this);
+      };
+    });
+    await panel.getByTestId('export-anki').click();
+    await panel.getByTestId('export-csv').click();
+    const files = await panel.evaluate(() => Promise.all(window.__dl));
+    const anki = files.find((f) => f.name.startsWith('glossa-anki'));
+    const csv = files.find((f) => f.name.endsWith('.csv'));
+    assert(anki && anki.text.startsWith('#separator:tab') && anki.text.includes('<b>NIM</b>'), 'anki export');
+    assert(csv && csv.text.startsWith('term,meaning') && csv.text.includes('net interest margin'), 'csv export');
+    upstreamLog.length = 0;
+    await panel.getByTestId('word-row').filter({ hasText: 'NIM' }).locator('.row').click();
+    await panel.getByTestId('word-explain').click();
+    await waitResult('NIM');
+    eq(upstreamLog.length, 1, 'explain again asks fresh');
+  });
+
+  await step('seen it before: known words are underlined, hover shows the saved meaning, Explain here works', async () => {
+    await demo.bringToFront();
+    await clearSelection(demo);
+    await waitSeen(demo, (n) => n >= 3, 'known words underlined on the demo page');
+    const pt = await wordPoint(demo, '#p-later', 'bank');
+    await demo.mouse.move(pt.x, pt.y + 30);
+    await demo.mouse.move(pt.x, pt.y, { steps: 4 });
+    const card = demo.locator('[data-glossa-seen]');
+    await card.waitFor({ state: 'visible', timeout: 4000 });
+    const text = await card.innerText();
+    assert(text.includes('Meaning of bank') && /looked up 2×/.test(text), `card text: ${text}`);
+    assert(/You looked this up on this page/.test(text), `memory line: ${text}`);
+    await demo.screenshot({ path: path.join(artifacts, 'demo-seen.png') });
+    upstreamLog.length = 0;
+    await card.getByRole('button', { name: 'Explain here' }).click();
+    await waitResult('bank');
+    await sleep(300);
+    assert(upstreamLog.length === 0 || upstreamLog[0].sentence.includes('burst its bank again'), 'explained in this sentence');
+    await demo.mouse.move(5, 5);
+  });
+
+  await step('you met this before: on another page the card says when and where, with your old sentence', async () => {
+    const site2 = await context.newPage();
+    await site2.goto(`${API}/`);
+    await site2.locator('#try').scrollIntoViewIfNeeded();
+    await waitSeen(site2, (n) => n >= 1, 'known words underlined on the homepage');
+    const pt = await wordPoint(site2, '#pg-text', 'idempotent');
+    await site2.mouse.move(pt.x, pt.y + 30);
+    await site2.mouse.move(pt.x, pt.y, { steps: 4 });
+    const card = site2.locator('[data-glossa-seen]');
+    await card.waitFor({ state: 'visible', timeout: 4000 });
+    const text = await card.innerText();
+    assert(/You met it (just now|.* ago) · Practice page/.test(text), `when/where: ${text.replace(/\n/g, ' | ')}`);
+    assert(/Retries make things worse unless every write is idempotent/.test(text), `old sentence: ${text}`);
+    await site2.screenshot({ path: path.join(artifacts, 'site-met-before.png') });
+    await site2.close();
+    await demo.bringToFront();
+  });
+
+  await step('weekly recap: stats in Your words and a shareable image', async () => {
+    await openView('Your words');
+    const recap = panel.getByTestId('recap');
+    await recap.waitFor();
+    const t = await recap.innerText();
+    assert(/new words/.test(t) && /Most met/.test(t), `recap text: ${t}`);
+    await panel.screenshot({ path: path.join(artifacts, 'panel-recap.png') });
+    await panel.evaluate(() => {
+      window.__dl = [];
+      const orig = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function () {
+        if (this.download) {
+          const name = this.download;
+          window.__dl.push(
+            fetch(this.href)
+              .then((r) => r.blob())
+              .then((b) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res({ name, size: b.size, data: fr.result }); fr.readAsDataURL(b); }))
+          );
+          return;
+        }
+        return orig.call(this);
+      };
+    });
+    await panel.getByTestId('recap-save').click();
+    await panel.waitForFunction(() => window.__dl.length > 0);
+    const [file] = await panel.evaluate(() => Promise.all(window.__dl));
+    assert(file.name.endsWith('.png') && file.size > 5000, `recap image: ${file.name} ${file.size}`);
+    fs.writeFileSync(path.join(artifacts, 'recap-share.png'), Buffer.from(file.data.split(',')[1], 'base64'));
+  });
+
+  await step('seen it before: off in settings and off per site', async () => {
+    await setSettings(panel, { showSeen: false });
+    await waitSeen(demo, (n) => n === 0, 'underlines removed when turned off');
+    await setSettings(panel, { showSeen: true });
+    await waitSeen(demo, (n) => n > 0, 'underlines back');
+    await setSettings(panel, { disabledSites: ['localhost'] });
+    await waitSeen(demo, (n) => n === 0, 'underlines removed on a disabled site');
+    await setSettings(panel, { disabledSites: [] });
+    await waitSeen(demo, (n) => n > 0, 'underlines back after re-enabling the site');
+  });
+
+  await step('anonymous counts: lookups and repeats reach the server, the opt-out is honoured', async () => {
+    const before = await stats();
+    assert(before.lookups > 0 && before.repeatLookups >= 1 && before.activeInstalls === 1, `stats ${JSON.stringify(before)}`);
+    await setSettings(panel, { shareStats: false });
+    await select(demo, '#p-later', 'river');
+    await demo.keyboard.press('Alt+KeyE');
+    await waitResult('river');
+    const after = await stats();
+    eq(after.lookups, before.lookups, 'opted-out lookup not counted');
+    await setSettings(panel, { shareStats: true });
+  });
+
+  await step('welcome page: reader profile saves the first language', async () => {
+    await welcome.bringToFront();
+    await welcome.getByTestId('welcome-native').selectOption('Spanish');
+    await welcome.waitForFunction(async () => (await chrome.storage.local.get('glossa.settings'))['glossa.settings']?.nativeLanguage === 'Spanish');
+    await welcome.screenshot({ path: path.join(artifacts, 'welcome-profile.png'), fullPage: true });
+    await setSettings(welcome, { nativeLanguage: '' });
+    await demo.bringToFront();
+  });
+
+  await step('light review: due words show on home, recall check updates the schedule', async () => {
+    // Pretend every word was first looked up two days ago so they're due.
+    await panel.evaluate(async () => {
+      const all = await chrome.storage.local.get(null);
+      const patch = {};
+      for (const [k, v] of Object.entries(all)) if (k.startsWith('glossa.lex:')) patch[k] = { ...v, firstSeen: v.firstSeen - 2 * 86400000, review: undefined };
+      await chrome.storage.local.set(patch);
+      // Touch the index so open views reload.
+      await chrome.storage.local.set({ 'glossa.terms': [...(all['glossa.terms'] || [])] });
+    });
+    await panel.getByLabel('Home').click().catch(() => undefined);
+    if (await panel.getByLabel('Back').isVisible().catch(() => false)) await panel.getByLabel('Back').click();
+    await panel.getByLabel('Home').click();
+    const nudge = panel.getByTestId('review-nudge');
+    await nudge.waitFor({ timeout: 5000 });
+    assert(/\d+ words? to review/.test(await nudge.innerText()), 'nudge text');
+    await nudge.click();
+    await panel.getByTestId('review-card').waitFor();
+    await panel.screenshot({ path: path.join(artifacts, 'panel-review.png'), fullPage: true });
+    const firstTerm = await panel.getByTestId('review-term').innerText();
+    await panel.getByTestId('review-reveal').click();
+    await panel.getByTestId('review-answer').waitFor();
+    await panel.screenshot({ path: path.join(artifacts, 'panel-review-answer.png'), fullPage: true });
+    await panel.getByTestId('review-good').click();
+    for (let i = 0; i < 12 && !(await panel.getByTestId('review-done').isVisible()); i++) {
+      await panel.keyboard.press('Space');
+      await panel.keyboard.press('2');
+      await sleep(80);
+    }
+    await panel.getByTestId('review-done').waitFor();
+    assert(/You reviewed 10 words and knew 10/.test(await panel.getByTestId('review-done').innerText()), 'session capped at 10, all graded');
+    const reviewed = await panel.evaluate(async (term) => {
+      const all = await chrome.storage.local.get(null);
+      return Object.entries(all).find(([k, v]) => k.startsWith('glossa.lex:') && v.headword === term)?.[1]?.review;
+    }, firstTerm);
+    assert(reviewed && reviewed.reps === 1 && reviewed.interval === 1, `review saved: ${JSON.stringify(reviewed)}`);
+  });
+
+  await step('on-device mode: Settings reports what this browser supports', async () => {
+    await openView('Settings');
+    await panel.getByRole('button', { name: 'On this device', exact: true }).click();
+    await sleep(300);
+    const source = await panel.evaluate(async () => (await chrome.storage.local.get('glossa.settings'))['glossa.settings'].aiSource);
+    if (await panel.getByTestId('device-msg').isVisible()) {
+      eq(source, 'hosted', 'unsupported browser keeps the free service');
+    } else {
+      eq(source, 'on-device', 'supported browser switches');
+      await panel.getByTestId('device-status').waitFor();
+    }
+    await panel.screenshot({ path: path.join(artifacts, 'panel-on-device.png'), fullPage: true });
+    await setSettings(panel, { aiSource: 'hosted' });
+  });
+
+  await step('PDF reader: open a PDF, select text, explain it; known words are underlined', async () => {
+    const pdfPath = path.join(os.tmpdir(), 'glossa-e2e-sample.pdf');
+    fs.writeFileSync(pdfPath, makePdf(['Lenders reported a wider net interest margin this quarter.', 'Analysts expect NIM to narrow, and the covenant was breached.']));
+    const reader = await context.newPage();
+    await reader.goto(extUrl('reader.html'));
+    await reader.setInputFiles('#r-file', pdfPath);
+    await reader.locator('.r-page[data-done="1"]').first().waitFor({ timeout: 15000 });
+    await reader.screenshot({ path: path.join(artifacts, 'reader.png') });
+    upstreamLog.length = 0;
+    await reader.bringToFront();
+    await select(reader, '.r-page .textLayer', 'covenant');
+    await reader.keyboard.press('Alt+KeyE');
+    await waitResult('covenant');
+    assert(upstreamLog[0].sentence.includes('covenant was breached'), `sentence from the PDF: ${upstreamLog[0]?.sentence}`);
+    await clearSelection(reader);
+    await waitSeen(reader, (n) => n >= 1, 'known words underlined inside the PDF');
+    await reader.close();
+    await demo.bringToFront();
+  });
+
+  await step('PDF reader: a PDF link from a site without permission asks first; PDF tabs point to the reader', async () => {
+    const reader = await context.newPage();
+    await reader.goto(extUrl(`reader.html?url=${encodeURIComponent('https://example.invalid/report.pdf')}`));
+    await reader.getByRole('button', { name: 'Allow and open' }).waitFor();
+    await reader.close();
+    const tab = await context.newPage();
+    await tab.goto(`${API}/missing-report.pdf`);
+    await tab.bringToFront();
+    // A real shortcut press grants activeTab, which exposes the tab URL; calling the worker directly doesn't, so pass it.
+    await sw.evaluate(async (url) => {
+      const [t] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      await globalThis.__glossa.explainFromTab({ ...t, url: t.url || url }, 'shortcut');
+    }, `${API}/missing-report.pdf`);
+    await panel.getByText('This is a PDF').waitFor();
+    await panel.getByTestId('open-pdf').waitFor();
+    await tab.close();
+    await demo.bringToFront();
+  });
+
   await step('quota exhausted shows the upgrade path', async () => {
     await setSettings(panel, { serverUrl: `http://localhost:${QUOTA_PORT}` });
     await panel.evaluate(() => chrome.storage.local.set({ 'glossa.cache': [] }));
@@ -658,7 +1049,7 @@ async function main() {
 
   await step('own-key settings: bad key is reported clearly', async () => {
     await openView('Settings');
-    await panel.getByRole('button', { name: 'My own API key' }).click();
+    await panel.getByRole('button', { name: 'My own key' }).click();
     await panel.getByTestId('provider').selectOption('groq');
     await panel.getByTestId('api-key').fill('gsk_definitely_not_a_real_key');
     await panel.getByTestId('save-test').click();
@@ -674,7 +1065,7 @@ async function main() {
     await step('LIVE: own Groq key → Save and test succeeds', async () => {
       assert(realKey, 'no key in server/.env');
       await openView('Settings');
-      await panel.getByRole('button', { name: 'My own API key' }).click();
+      await panel.getByRole('button', { name: 'My own key' }).click();
       await panel.getByTestId('provider').selectOption('groq');
       await panel.getByTestId('api-key').fill(realKey);
       await panel.getByTestId('save-test').click();
@@ -823,6 +1214,8 @@ async function main() {
     upstreamLog.length = 0;
     await pgSelect('idempotent');
     await site.locator('#pg-chip').waitFor({ state: 'visible' });
+    await sleep(300);
+    eq(await site.locator('[data-glossa-chip]').isVisible(), false, 'extension button stays out of the playground');
     await site.locator('#pg-chip').click();
     await site.getByTestId('pg-headword').filter({ hasText: 'idempotent' }).waitFor({ timeout: 15000 });
     eq(upstreamLog[0].sentence, 'Our API retries are idempotent, so a flaky network can’t double-charge anyone.', 'playground sentence');
@@ -874,7 +1267,10 @@ async function main() {
       await site.selectOption('#pg-provider', 'groq');
       await site.fill('#pg-apikey', realKey);
       await site.click('#pg-test');
-      await site.locator('#pg-key-status', { hasText: 'Connected' }).waitFor({ timeout: 30000 });
+      const status = site.locator('#pg-key-status');
+      await site.waitForFunction(() => /Connected|rejected|limit|reach|took too long/i.test(document.getElementById('pg-key-status')?.textContent || ''), null, { timeout: 30000 });
+      const text = await status.innerText();
+      assert(/Connected/.test(text), `key test status: ${text}`);
       await pgSelect('poison pill');
       await site.locator('#pg-chip').click();
       await site.getByTestId('pg-card').waitFor({ timeout: 30000 });
@@ -906,6 +1302,7 @@ async function main() {
       /status of 401/, // bad-key test
       /status of 429/, // quota test
       /status of 404 \(Not Found\)/, // favicon for pages without one
+      /ERR_NAME_NOT_RESOLVED/, // reader test with an unreachable PDF link
     ];
     const unexpected = consoleErrors.filter((e) => !expected.some((r) => r.test(e.text)));
     fs.writeFileSync(path.join(artifacts, 'console-errors.json'), JSON.stringify(consoleErrors, null, 2));

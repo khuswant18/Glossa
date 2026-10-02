@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, PanelRight, Settings as Gear } from 'lucide-react';
 import { explain } from '../ai/client';
 import { toAiError } from '../ai/errors';
-import { bumpStats, dayKey, getStats, randomId, setPending, siteKey, upsertLookup } from '../shared/storage';
+import { looksLikePdf, openInReader } from '../shared/pdf';
+import { bumpStats, dayKey, getStats, randomId, recordLookup, setPending, siteKey, upsertLookup } from '../shared/storage';
 import type { Explanation, Lookup } from '../shared/types';
 import { useApplyTheme, useSettings, useShortcut } from '../ui/hooks';
 import { Wordmark } from '../ui/Logo';
@@ -19,6 +20,7 @@ export function Popup() {
 
   const [windowId, setWindowId] = useState<number | undefined>();
   const [site, setSite] = useState('');
+  const [pdfTab, setPdfTab] = useState<chrome.tabs.Tab | null>(null);
   const [weekCount, setWeekCount] = useState(0);
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
@@ -30,7 +32,10 @@ export function Popup() {
     chrome.windows?.getCurrent().then((w) => setWindowId(w.id)).catch(() => undefined);
     chrome.tabs
       ?.query({ active: true, currentWindow: true })
-      .then(([tab]) => setSite(tab?.url && /^https?:/.test(tab.url) ? siteKey(tab.url) : ''))
+      .then(([tab]) => {
+        setSite(tab?.url && /^https?:/.test(tab.url) ? siteKey(tab.url) : '');
+        if (looksLikePdf(tab?.url)) setPdfTab(tab);
+      })
       .catch(() => undefined);
     getStats().then((s) => {
       let n = 0;
@@ -73,7 +78,7 @@ export function Popup() {
     setAnswer(null);
     try {
       const out = await explain(
-        { text, level: settings.level, length: 'brief', language: settings.language },
+        { text, level: settings.level, length: 'brief', language: settings.language, nativeLanguage: settings.nativeLanguage },
         settings,
         { signal: ac.signal }
       );
@@ -92,6 +97,7 @@ export function Popup() {
           source: out.source,
         };
         await upsertLookup(item);
+        await recordLookup(item);
       }
       await bumpStats();
     } catch (err) {
@@ -167,10 +173,21 @@ export function Popup() {
             {answer.result.partOfSpeech && <span className="tag">{answer.result.partOfSpeech}</span>}
           </div>
           <p>{answer.result.meaning}</p>
+          {answer.result.gloss && <p className="muted">{answer.result.gloss}</p>}
           <button className="linkish" onClick={openAnswerInPanel}>
             More in side panel
           </button>
         </div>
+      )}
+
+      {pdfTab && (
+        <button
+          className="btn btn-secondary btn-block pop-pdf"
+          data-testid="popup-open-pdf"
+          onClick={() => void openInReader(pdfTab.url, pdfTab.id).finally(() => window.close())}
+        >
+          Open this PDF in Glossa reader
+        </button>
       )}
 
       <div className="pop-actions">
@@ -186,11 +203,11 @@ export function Popup() {
         {site && (
           <div className="pop-row">
             <span>
-              Explain button on <b>{site}</b>
+              Glossa on <b>{site}</b>
             </span>
             <Switch
-              checked={!siteDisabled && settings.showChip}
-              label={`Explain button on ${site}`}
+              checked={!siteDisabled && (settings.showChip || settings.showSeen)}
+              label={`Glossa on ${site}`}
               testId="site-toggle"
               onChange={(v) => {
                 if (v && !settings.showChip) {

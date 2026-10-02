@@ -58,7 +58,8 @@ body {
   color: var(--text-strong);
 }
 .mini.err {
-  border-left: 3px solid var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 32%, var(--line));
+  background: color-mix(in srgb, var(--primary) 7%, transparent);
   line-height: 1.5;
 }
 .linkish {
@@ -119,4 +120,7 @@ kbd.on-primary {
   justify-content: space-between;
   font-size: 11px;
   color: var(--muted);
+}
+.pop-pdf {
+  margin-bottom: 8px;
 }

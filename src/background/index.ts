@@ -6,6 +6,7 @@
 
 import { warmUp } from '../ai/hosted';
 import { WEBSITE_URL } from '../shared/brand';
+import { looksLikePdf } from '../shared/pdf';
 import { DEFAULT_SETTINGS, KEYS, mergeSettings, randomId, setNotice, setPending } from '../shared/storage';
 import type { CapturedSelection, Message, PanelNotice, Settings, Trigger } from '../shared/types';
 
@@ -135,8 +136,8 @@ async function dispatch(selection: CapturedSelection, trigger: Trigger, windowId
   await setPending({ id: randomId(), selection, trigger, createdAt: now, windowId });
 }
 
-async function notify(kind: PanelNotice['kind'], message: string, tabId?: number, windowId?: number): Promise<void> {
-  await setNotice({ id: randomId(), kind, message, createdAt: Date.now(), windowId });
+async function notify(kind: PanelNotice['kind'], message: string, tabId?: number, windowId?: number, url?: string): Promise<void> {
+  await setNotice({ id: randomId(), kind, message, createdAt: Date.now(), windowId, ...(url ? { url } : {}) });
   if (tabId !== undefined && kind === 'no-selection') {
     chrome.tabs.sendMessage(tabId, { type: 'TOAST', message, tone: 'warn' } satisfies Message).catch(() => undefined);
   }
@@ -182,10 +183,20 @@ async function explainFromTab(tab: chrome.tabs.Tab | undefined, trigger: Trigger
     );
   }
 
+  if (looksLikePdf(tab.url)) {
+    return notify(
+      'pdf',
+      'Chrome’s PDF viewer doesn’t let extensions read what you select. Open this PDF in the Glossa reader and select text there as usual.',
+      undefined,
+      tab.windowId,
+      tab.url
+    );
+  }
+
   if (result.kind === 'restricted') {
     return notify(
       'restricted',
-      'Chrome doesn’t let extensions read this page (browser pages, the Web Store and the built-in PDF viewer). Type the word into the box above instead.',
+      'Chrome doesn’t let extensions read this page (browser pages and the Web Store). Type the word into the box above instead. For PDFs, use the Glossa reader.',
       undefined,
       tab.windowId
     );

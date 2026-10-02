@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Eye, EyeOff, X } from 'lucide-react';
 import { testConnection } from '../ai/client';
+import { ON_DEVICE_LANGUAGES, downloadOnDeviceModel, onDeviceStatus, type OnDeviceStatus } from '../ai/ondevice';
 import { BRAND, VERSION, WEBSITE_URL } from '../shared/brand';
 import { LANGUAGES, PROVIDERS, getProvider } from '../shared/catalog';
 import { KEYS, clearCache, clearHistory, getInstallId } from '../shared/storage';
@@ -66,6 +67,35 @@ export function SettingsView({ settings, update }: { settings: Settings; update:
   const [confirmWipe, setConfirmWipe] = useState(false);
   const [done, setDone] = useState('');
   const [installId, setInstallId] = useState('');
+  const [device, setDevice] = useState<OnDeviceStatus | null>(null);
+  const [deviceMsg, setDeviceMsg] = useState('');
+  const [progress, setProgress] = useState<number | null>(null);
+
+  useEffect(() => {
+    void onDeviceStatus(settings.language).then(setDevice);
+  }, [settings.language]);
+
+  const chooseSource = (v: Settings['aiSource']) => {
+    setDeviceMsg('');
+    if (v === 'on-device' && device === 'unavailable') {
+      setDeviceMsg('This browser or computer can’t run the on-device model. It needs Chrome 138 or newer on a supported computer.');
+      return;
+    }
+    void update({ aiSource: v });
+  };
+
+  const downloadModel = async () => {
+    setProgress(0);
+    setDeviceMsg('');
+    try {
+      await downloadOnDeviceModel((f) => setProgress(f));
+      setDevice(await onDeviceStatus(settings.language));
+    } catch (err) {
+      setDeviceMsg((err as Error).message || 'The download didn’t start. Try again.');
+    } finally {
+      setProgress(null);
+    }
+  };
 
   useEffect(() => {
     getInstallId().then((id) => setInstallId(id.slice(0, 8)));
@@ -140,18 +170,45 @@ export function SettingsView({ settings, update }: { settings: Settings; update:
             <Seg
               label="AI source"
               value={settings.aiSource}
-              onChange={(v) => update({ aiSource: v })}
+              onChange={chooseSource}
               options={[
                 { value: 'hosted', label: `${BRAND.name} (free)` },
-                { value: 'own-key', label: 'My own API key' },
+                { value: 'on-device', label: 'On this device' },
+                { value: 'own-key', label: 'My own key' },
               ]}
             />
             <div className="set-help">
               {settings.aiSource === 'hosted'
                 ? 'No API key needed. A daily allowance of free explanations, served by Glossa.'
+                : settings.aiSource === 'on-device'
+                ? 'Private: answers come from the AI model built into Chrome, so your text never leaves this computer. Free and unlimited. Answers are shorter and simpler than the online options.'
                 : 'Unlimited use, billed by your provider. Your key is stored only in this browser and sent only to that provider.'}
             </div>
+            {deviceMsg && (
+              <div className="result-line fail" role="status" data-testid="device-msg">
+                {deviceMsg}
+              </div>
+            )}
           </div>
+
+          {settings.aiSource === 'on-device' && (
+            <div className="set col" data-testid="device-status">
+              <span className="set-label">On-device model</span>
+              <div className="set-help">
+                {device === 'available' && 'Ready. Works offline.'}
+                {device === 'downloadable' && 'Chrome needs to download the model once (it’s large; Wi-Fi recommended).'}
+                {device === 'downloading' && 'Chrome is downloading the model…'}
+                {device === 'unavailable' && 'Not available on this browser or computer.'}
+                {device === null && 'Checking…'}
+                {!ON_DEVICE_LANGUAGES[settings.language] && ' On-device answers are in English, Spanish or Japanese; change “Explain in” to use it.'}
+              </div>
+              {(device === 'downloadable' || device === 'downloading') && (
+                <button className="btn btn-secondary btn-sm" onClick={downloadModel} disabled={progress !== null}>
+                  {progress !== null ? `Downloading… ${Math.round(progress * 100)}%` : 'Download the model'}
+                </button>
+              )}
+            </div>
+          )}
 
           {settings.aiSource === 'hosted' && (
             <div className="set col">
@@ -308,7 +365,7 @@ export function SettingsView({ settings, update }: { settings: Settings; update:
 
       {/* ---------------- Answers ---------------- */}
       <section className="group">
-        <h3>Answer style</h3>
+        <h3>Reader profile</h3>
         <div className="box">
           <div className="set col">
             <span className="set-label">Reading level</span>
@@ -353,6 +410,27 @@ export function SettingsView({ settings, update }: { settings: Settings; update:
               ))}
             </select>
           </div>
+          <div className="set">
+            <div>
+              <label className="set-label" htmlFor="native">
+                My first language
+              </label>
+              <div className="set-help">Adds a one-line meaning in your language under each answer.</div>
+            </div>
+            <select
+              id="native"
+              className="select"
+              style={{ width: 180 }}
+              value={settings.nativeLanguage}
+              onChange={(e) => update({ nativeLanguage: e.target.value })}
+              data-testid="native-language"
+            >
+              <option value="">None</option>
+              {LANGUAGES.map((l) => (
+                <option key={l}>{l}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </section>
 
@@ -366,6 +444,13 @@ export function SettingsView({ settings, update }: { settings: Settings; update:
               <div className="set-help">A small button appears next to text you highlight.</div>
             </div>
             <Switch checked={settings.showChip} onChange={(v) => update({ showChip: v })} label="Show Explain button" testId="toggle-chip" />
+          </div>
+          <div className="set">
+            <div>
+              <div className="set-label">Underline words you’ve looked up</div>
+              <div className="set-help">When a word from your list shows up on another page, it gets a dotted underline. Hover to see your saved meaning. Runs on the page; nothing is sent.</div>
+            </div>
+            <Switch checked={settings.showSeen} onChange={(v) => update({ showSeen: v })} label="Underline words you’ve looked up" testId="toggle-seen" />
           </div>
           <div className="set">
             <div>
@@ -388,7 +473,7 @@ export function SettingsView({ settings, update }: { settings: Settings; update:
           </div>
           {settings.disabledSites.length > 0 && (
             <div className="set col">
-              <span className="set-label">Explain button hidden on</span>
+              <span className="set-label">Glossa is off on</span>
               <div className="sites">
                 {settings.disabledSites.map((site) => (
                   <span key={site} className="site-tag">
@@ -447,9 +532,16 @@ export function SettingsView({ settings, update }: { settings: Settings; update:
           <div className="set">
             <div>
               <div className="set-label">Keep history</div>
-              <div className="set-help">Stored only in this browser. Saved items are always kept.</div>
+              <div className="set-help">Stored only in this browser. Also builds your word list. Saved items are always kept.</div>
             </div>
             <Switch checked={settings.saveHistory} onChange={(v) => update({ saveHistory: v })} label="Keep history" testId="toggle-history" />
+          </div>
+          <div className="set">
+            <div>
+              <div className="set-label">Share anonymous usage counts</div>
+              <div className="set-help">With free-service requests only: whether a word was already in your list and how many words it has. Never the text, page or your history.</div>
+            </div>
+            <Switch checked={settings.shareStats} onChange={(v) => update({ shareStats: v })} label="Share anonymous usage counts" testId="toggle-stats" />
           </div>
           <div className="set">
             <div className="set-label">Cached answers</div>

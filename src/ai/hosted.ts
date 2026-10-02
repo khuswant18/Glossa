@@ -17,7 +17,7 @@ export function hostedBase(serverUrlOverride?: string): string {
 export async function hostedCall<T>(
   path: '/v1/explain' | '/v1/follow-up',
   payload: unknown,
-  opts: { signal?: AbortSignal; serverUrl?: string }
+  opts: { signal?: AbortSignal; serverUrl?: string; headers?: Record<string, string> }
 ): Promise<T> {
   try {
     return await hostedOnce<T>(path, payload, opts);
@@ -34,7 +34,7 @@ const transient = (e: AiError): AiError => (retryable.add(e), e);
 async function hostedOnce<T>(
   path: '/v1/explain' | '/v1/follow-up',
   payload: unknown,
-  opts: { signal?: AbortSignal; serverUrl?: string }
+  opts: { signal?: AbortSignal; serverUrl?: string; headers?: Record<string, string> }
 ): Promise<T> {
   const installId = await getInstallId();
   let res: Response;
@@ -45,6 +45,7 @@ async function hostedOnce<T>(
         'Content-Type': 'application/json',
         'X-Glossa-Install': installId,
         'X-Glossa-Version': VERSION,
+        ...opts.headers,
       },
       body: JSON.stringify(payload),
       signal: opts.signal,

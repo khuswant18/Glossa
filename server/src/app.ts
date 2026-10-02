@@ -17,6 +17,7 @@ import {
 } from '../../src/shared/prompt';
 import type { ExplainRequest, FollowUpRequest } from '../../src/shared/types';
 import { checkQuestion, guardExplanation, scrubExplanation, scrubText, secretsFor } from '../../src/shared/guard';
+import { MemoryStats, RedisStats, resilientStats } from './stats';
 
 export interface ServerConfig {
   port: number;
@@ -31,11 +32,15 @@ export interface ServerConfig {
   websiteDir: string;
   publicOrigin: string;
   upstreamTimeoutMs: number;
+  /** Sent as reasoning_effort to reasoning models (gpt-oss): "low" is ~3x faster with the same answers. */
+  upstreamReasoningEffort: string;
   feedbackFile: string;
   redisUrl: string;
   redisToken: string;
   trustProxy: boolean;
   log: boolean;
+  /** Bearer token for GET /v1/stats; empty disables the endpoint. */
+  statsToken: string;
 }
 
 export function configFromEnv(env: NodeJS.ProcessEnv, websiteDir: string): ServerConfig {
@@ -55,12 +60,14 @@ export function configFromEnv(env: NodeJS.ProcessEnv, websiteDir: string): Serve
     publicOrigin: (env.PUBLIC_ORIGIN || '').replace(/\/+$/, ''),
     // Total time for primary + fallback model; stays under the Vercel function's 30s maxDuration.
     upstreamTimeoutMs: num(env.UPSTREAM_TIMEOUT_MS, 24000),
+    upstreamReasoningEffort: env.UPSTREAM_REASONING_EFFORT ?? 'low',
     // Serverless file systems are read-only; there feedback goes to the function logs instead.
     feedbackFile: env.FEEDBACK_FILE || (env.VERCEL ? '' : path.resolve(websiteDir, '..', 'server', 'data', 'feedback.jsonl')),
     redisUrl: (env.UPSTASH_REDIS_REST_URL || env.KV_REST_API_URL || '').replace(/\/+$/, ''),
     redisToken: env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN || '',
     trustProxy: !!env.VERCEL || env.TRUST_PROXY === '1',
     log: env.LOG !== '0',
+    statsToken: env.STATS_TOKEN || '',
   };
 }
 
@@ -85,10 +92,38 @@ interface Limiter {
   refund(key: string, now?: number): Promise<void>;
   burstCount(key: string, now?: number): Promise<number>;
   burstAdd(key: string, now?: number): Promise<void>;
+  /** One round trip: the burst count for `burstKey` and the current daily counter for each key. */
+  check(burstKey: string, keys: string[], now?: number): Promise<{ burst: number; counters: Counter[] }>;
+  /** One round trip: record a burst hit and take one from each daily counter. */
+  commit(burstKey: string, keys: string[], now?: number): Promise<Counter[]>;
+  /** One round trip: give back one from each daily counter. */
+  refundAll(keys: string[], now?: number): Promise<void>;
   sweep(now?: number): void;
 }
 
-class MemoryLimiter implements Limiter {
+/** check/commit/refundAll built from the single-key methods (for the in-memory limiter). */
+abstract class BatchedFromSingle {
+  abstract peek(key: string, now?: number): Promise<Counter>;
+  abstract take(key: string, now?: number): Promise<Counter>;
+  abstract refund(key: string, now?: number): Promise<void>;
+  abstract burstCount(key: string, now?: number): Promise<number>;
+  abstract burstAdd(key: string, now?: number): Promise<void>;
+
+  async check(burstKey: string, keys: string[], now = Date.now()) {
+    return { burst: await this.burstCount(burstKey, now), counters: await Promise.all(keys.map((k) => this.peek(k, now))) };
+  }
+
+  async commit(burstKey: string, keys: string[], now = Date.now()) {
+    await this.burstAdd(burstKey, now);
+    return Promise.all(keys.map((k) => this.take(k, now)));
+  }
+
+  async refundAll(keys: string[], now = Date.now()) {
+    await Promise.all(keys.map((k) => this.refund(k, now)));
+  }
+}
+
+class MemoryLimiter extends BatchedFromSingle implements Limiter {
   private daily = new Map<string, Counter>();
   private burst = new Map<string, number[]>();
 
@@ -184,6 +219,31 @@ class RedisLimiter implements Limiter {
     ]);
   }
 
+  async check(burstKey: string, keys: string[], now = Date.now()) {
+    const out = await this.pipeline([['GET', this.minuteKey(burstKey, now)], ...keys.map((k) => ['GET', this.dayKey(k, now)])]);
+    const resetAt = nextUtcMidnight(now);
+    return { burst: Number(out[0]) || 0, counters: keys.map((_, i) => ({ count: Number(out[i + 1]) || 0, resetAt })) };
+  }
+
+  async commit(burstKey: string, keys: string[], now = Date.now()) {
+    const m = this.minuteKey(burstKey, now);
+    const resetAt = nextUtcMidnight(now);
+    const expireAt = Math.floor(resetAt / 1000) + 3600;
+    const out = await this.pipeline([
+      ['INCR', m],
+      ['EXPIRE', m, 120],
+      ...keys.flatMap((k) => [
+        ['INCR', this.dayKey(k, now)],
+        ['EXPIREAT', this.dayKey(k, now), expireAt],
+      ]),
+    ]);
+    return keys.map((_, i) => ({ count: Number(out[2 + i * 2]) || 1, resetAt }));
+  }
+
+  async refundAll(keys: string[], now = Date.now()) {
+    await this.pipeline(keys.map((k) => ['DECR', this.dayKey(k, now)]));
+  }
+
   sweep(): void {
     // Redis expires keys itself.
   }
@@ -207,6 +267,9 @@ function withFallback(primary: Limiter, backup: Limiter, log: boolean): Limiter 
     refund: wrap((l, k: string, n?: number) => l.refund(k, n)),
     burstCount: wrap((l, k: string, n?: number) => l.burstCount(k, n)),
     burstAdd: wrap((l, k: string, n?: number) => l.burstAdd(k, n)),
+    check: wrap((l, b: string, k: string[], n?: number) => l.check(b, k, n)),
+    commit: wrap((l, b: string, k: string[], n?: number) => l.commit(b, k, n)),
+    refundAll: wrap((l, k: string[], n?: number) => l.refundAll(k, n)),
     sweep: (n?: number) => backup.sweep(n),
   };
 }
@@ -274,9 +337,11 @@ export function validateExplain(body: unknown): ExplainRequest {
     context: optStr(b.context, 2000, 'context'),
     pageTitle: optStr(b.pageTitle, 200, 'pageTitle'),
     pageUrl: optStr(b.pageUrl, 500, 'pageUrl'),
+    pageDefinition: optStr(b.pageDefinition, 300, 'pageDefinition'),
     level: (LEVELS.includes(b.level as string) ? b.level : 'standard') as ExplainRequest['level'],
     length: (LENGTHS.includes(b.length as string) ? b.length : 'normal') as ExplainRequest['length'],
     language: language(b.language),
+    nativeLanguage: b.nativeLanguage ? language(b.nativeLanguage) : undefined,
   };
 }
 
@@ -335,6 +400,8 @@ async function callUpstream(cfg: ServerConfig, system: string, user: string): Pr
           temperature: 0.2,
           max_tokens: 1200,
           response_format: { type: 'json_object' },
+          // Only reasoning models accept this; others (e.g. Llama) reject unknown parameters.
+          ...(cfg.upstreamReasoningEffort && /gpt-oss/i.test(model) ? { reasoning_effort: cfg.upstreamReasoningEffort } : {}),
         }),
         signal: AbortSignal.timeout(budget),
       });
@@ -376,6 +443,7 @@ const MIME: Record<string, string> = {
   '.json': 'application/json',
   '.woff2': 'font/woff2',
   '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
   '.zip': 'application/zip',
   '.webp': 'image/webp',
 };
@@ -441,6 +509,7 @@ export function createHandler(cfg: ServerConfig): Handler {
     ...secretsFor({ apiKey: cfg.upstreamKey, model: cfg.upstreamModel, url: cfg.upstreamUrl }),
     ...secretsFor({ model: cfg.upstreamFallbackModel }),
   ];
+  const stats = resilientStats(cfg.redisUrl && cfg.redisToken ? new RedisStats(cfg.redisUrl, cfg.redisToken) : null, new MemoryStats(), cfg.log);
   const cache = new Lru<unknown>(500);
   const sweep = setInterval(() => limiter.sweep(), 10 * 60 * 1000);
   sweep.unref();
@@ -540,7 +609,7 @@ export function createHandler(cfg: ServerConfig): Handler {
       if (req.method === 'OPTIONS') {
         res.writeHead(allow ? 204 : 403, {
           'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, X-Glossa-Install, X-Glossa-Version',
+          'Access-Control-Allow-Headers': 'Content-Type, X-Glossa-Install, X-Glossa-Version, X-Glossa-Stats, X-Glossa-Repeat, X-Glossa-Lexicon',
           'Access-Control-Max-Age': '86400',
         });
         res.end();
@@ -559,6 +628,8 @@ export function createHandler(cfg: ServerConfig): Handler {
       } else if (pathname === '/v1/usage' && req.method === 'GET') {
         const install = installId(req);
         send(res, 200, { ok: true }, quotaHeaders(await limiter.peek(`i:${install}`)));
+      } else if (pathname === '/v1/stats' && req.method === 'GET') {
+        await handleStats(req, res, url);
       } else if (pathname === '/v1/feedback' && req.method === 'POST') {
         await handleFeedback(req, res);
       } else if ((pathname === '/v1/explain' || pathname === '/v1/follow-up') && req.method === 'POST') {
@@ -611,10 +682,14 @@ export function createHandler(cfg: ServerConfig): Handler {
       return;
     }
 
-    if ((await limiter.burstCount(installKey, now)) >= cfg.burstPerMinute) {
+    // Two round trips to the shared store per answer: one read here, one write below.
+    const {
+      burst,
+      counters: [current, ipCount],
+    } = await limiter.check(installKey, [installKey, ipKey], now);
+    if (burst >= cfg.burstPerMinute) {
       throw new HttpError(429, 'rate_limited', 'Slow down a little. Try again in a few seconds.', 10);
     }
-    const current = await limiter.peek(installKey, now);
     if (current.count >= cfg.dailyLimit) {
       const retry = Math.ceil((current.resetAt - now) / 1000);
       res.setHeader('X-Quota-Limit', cfg.dailyLimit);
@@ -627,13 +702,11 @@ export function createHandler(cfg: ServerConfig): Handler {
         retry
       );
     }
-    if ((await limiter.peek(ipKey, now)).count >= cfg.ipDailyLimit) {
+    if (ipCount.count >= cfg.ipDailyLimit) {
       throw new HttpError(429, 'quota_exceeded', 'Too many requests from your network today. Add your own API key in Settings to keep going.', 3600);
     }
 
-    await limiter.burstAdd(installKey, now);
-    const counted = await limiter.take(installKey, now);
-    await limiter.take(ipKey, now);
+    const [counted] = await limiter.commit(installKey, [installKey, ipKey], now);
 
     const cacheKey = crypto.createHash('sha256').update(pathname + JSON.stringify(request)).digest('hex');
     // "Ask again" in the extension sends fresh: true to skip the shared cache.
@@ -645,8 +718,9 @@ export function createHandler(cfg: ServerConfig): Handler {
           const r = request as ExplainRequest;
           const { system, user } = buildExplainPrompt(r);
           const raw = await callUpstream(cfg, system, user);
-          const userText = [r.text, r.sentence, r.context, r.pageTitle].filter(Boolean).join(' ');
-          const result = scrubExplanation(normalizeExplanation(raw, r.text), { userText, secrets });
+          const userText = [r.text, r.sentence, r.context, r.pageTitle, r.pageDefinition].filter(Boolean).join(' ');
+          const sources = [r.sentence, r.context, r.pageDefinition].filter(Boolean).join('\n');
+          const result = scrubExplanation(normalizeExplanation(raw, r.text, sources), { userText, secrets });
           if (!result && cfg.log) console.warn('[guard] replaced a leaking explanation');
           payload = { result: result || guardExplanation() };
         } else {
@@ -659,15 +733,34 @@ export function createHandler(cfg: ServerConfig): Handler {
         cache.set(cacheKey, payload);
       }
       send(res, 200, payload, quotaHeaders(counted));
+      // Anonymous counts, after the answer is on its way. The extension sends "off" when the user opted out.
+      if (String(req.headers['x-glossa-stats'] || '') !== 'off') {
+        await stats.record({
+          install,
+          kind: isExplain ? 'explain' : 'follow-up',
+          repeat: req.headers['x-glossa-repeat'] === '1',
+          lexicon: Math.min(Number(req.headers['x-glossa-lexicon']) || 0, 1_000_000),
+        });
+      }
     } catch (err) {
+      if (res.headersSent) return;
       // Failed answers don't count against the user's quota.
-      await limiter.refund(installKey);
-      await limiter.refund(ipKey);
+      await limiter.refundAll([installKey, ipKey]);
       if (err instanceof Error && err.name === 'MalformedResponseError') {
         throw new HttpError(502, 'upstream_error', err.message);
       }
       throw err;
     }
+  }
+
+  async function handleStats(req: http.IncomingMessage, res: http.ServerResponse, url: URL): Promise<void> {
+    const given = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    const ok =
+      !!cfg.statsToken &&
+      given.length === cfg.statsToken.length &&
+      crypto.timingSafeEqual(Buffer.from(given), Buffer.from(cfg.statsToken));
+    if (!ok) throw new HttpError(404, 'not_found', 'Unknown endpoint.');
+    send(res, 200, { days: await stats.report(Number(url.searchParams.get('days')) || 30) });
   }
 
   async function handleFeedback(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {

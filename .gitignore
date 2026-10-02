@@ -26,6 +26,7 @@ website/*.html
 website/site.js
 website/boot.js
 website/robots.txt
+website/sitemap.xml
 website/assets/
 website/download/
 

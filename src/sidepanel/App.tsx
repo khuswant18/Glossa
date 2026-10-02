@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Clock, Settings as Gear } from 'lucide-react';
+import { ArrowLeft, BookOpen, Clock, Settings as Gear } from 'lucide-react';
 import { explain, followUp } from '../ai/client';
 import { warmUp } from '../ai/hosted';
 import { AiError, toAiError } from '../ai/errors';
@@ -11,6 +11,8 @@ import {
   getPending,
   getSettings,
   randomId,
+  getTermIndex,
+  recordLookup,
   upsertLookup,
 } from '../shared/storage';
 import type { CapturedSelection, FollowUpKind, Lookup, PanelNotice, PendingRequest, Trigger } from '../shared/types';
@@ -20,8 +22,10 @@ import { HomeView } from './HomeView';
 import { ResultView, LoadingView, ErrorView, NoticeView } from './ResultView';
 import { HistoryView } from './HistoryView';
 import { SettingsView } from './SettingsView';
+import { WordsView } from './WordsView';
+import { termKey, type LexiconEntry } from '../shared/lexicon';
 
-export type View = 'explain' | 'history' | 'settings';
+export type View = 'explain' | 'words' | 'history' | 'settings';
 
 export type Current =
   | { status: 'idle' }
@@ -45,6 +49,7 @@ export function App() {
   useApplyTheme(settings);
 
   const [view, setView] = useState<View>('explain');
+  const [wordsMode, setWordsMode] = useState<'list' | 'review'>('list');
   const [current, setCurrent] = useState<Current>({ status: 'idle' });
   const [history, setHistory] = useState<Lookup[]>([]);
   const [followBusy, setFollowBusy] = useState<string | null>(null);
@@ -78,6 +83,9 @@ export function App() {
 
     const s = await getSettings();
     try {
+      const index = await getTermIndex();
+      const key = termKey(selection.text);
+      const stats = { repeat: index.some((i) => i.k === key), lexicon: index.length };
       const out = await explain(
         {
           text: selection.text,
@@ -85,12 +93,14 @@ export function App() {
           context: selection.context,
           pageTitle: selection.pageTitle,
           pageUrl: selection.pageUrl,
+          pageDefinition: selection.pageDefinition,
           level: s.level,
           length: s.length,
           language: s.language,
+          nativeLanguage: s.nativeLanguage,
         },
         s,
-        { signal: ac.signal, bypassCache }
+        { signal: ac.signal, bypassCache, stats }
       );
       if (seq !== seqRef.current) return;
       const lookup: Lookup = {
@@ -106,7 +116,10 @@ export function App() {
         source: out.source,
       };
       setCurrent({ status: 'done', lookup, cached: out.cached });
-      if (s.saveHistory || lookup.saved) setHistory(await upsertLookup(lookup));
+      if (s.saveHistory || lookup.saved) {
+        setHistory(await upsertLookup(lookup));
+        await recordLookup(lookup);
+      }
       await bumpStats();
     } catch (err) {
       if (seq !== seqRef.current) return;
@@ -258,6 +271,18 @@ export function App() {
 
   const lookupText = useCallback((text: string) => run(manualSelection(text), 'lookup'), [run]);
 
+  // Re-explains a word-list entry in the place it was last seen.
+  const explainEntry = useCallback(
+    (e: LexiconEntry) => {
+      const s = e.sightings[0];
+      const selection: CapturedSelection = s
+        ? { text: e.term, sentence: s.sentence, context: s.sentence, pageTitle: s.title, pageUrl: s.url, truncated: false }
+        : manualSelection(e.term);
+      void run(selection, 'lookup', true);
+    },
+    [run]
+  );
+
   // ---- render -----------------------------------------------------------------
   const savedCount = history.filter((h) => h.saved).length;
 
@@ -278,10 +303,23 @@ export function App() {
             <button className="icon-btn" onClick={() => setView('explain')} aria-label="Back" style={{ marginLeft: -8 }}>
               <ArrowLeft size={18} />
             </button>
-            <span className="title">{view === 'history' ? 'History' : 'Settings'}</span>
+            <span className="title">{view === 'history' ? 'History' : view === 'words' ? 'Your words' : 'Settings'}</span>
           </>
         )}
         <span className="spacer" />
+        <button
+          className="icon-btn"
+          aria-label="Your words"
+          title="Your words"
+          aria-pressed={view === 'words'}
+          onClick={() => {
+            setWordsMode('list');
+            setView(view === 'words' ? 'explain' : 'words');
+          }}
+          data-testid="nav-words"
+        >
+          <BookOpen size={17} />
+        </button>
         <button
           className="icon-btn badge-dot"
           aria-label="History"
@@ -307,6 +345,7 @@ export function App() {
           <HistoryView history={history} setHistory={setHistory} onOpen={openLookup} savedCount={savedCount} />
         )}
         {view === 'settings' && <SettingsView settings={settings} update={updateSettings} />}
+        {view === 'words' && <WordsView key={wordsMode} onExplain={explainEntry} initialMode={wordsMode} />}
         {view === 'explain' && (
           <>
             {current.status === 'idle' && (
@@ -317,6 +356,10 @@ export function App() {
                 onExplainTab={explainActiveTab}
                 onOpen={openLookup}
                 onSeeAll={() => setView('history')}
+                onReview={() => {
+                  setWordsMode('review');
+                  setView('words');
+                }}
               />
             )}
             {current.status === 'loading' && <LoadingView key={current.selection.text} selection={current.selection} onCancel={cancel} />}

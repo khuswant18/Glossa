@@ -11,6 +11,11 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'website');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const YEAR = new Date().getFullYear();
+// Absolute site URL for the sitemap (same rule as build.js: explicit setting, then the Vercel production domain).
+const SITE_URL = (
+  process.env.GLOSSA_WEBSITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'http://localhost:7717')
+).replace(/\/+$/, '');
 const TODAY = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
 const MARK = (size = 28) =>
@@ -28,6 +33,9 @@ const ICONS = {
   export: icon('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>'),
   byok: icon('<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/>'),
   frame: icon('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 9v11"/>'),
+  seen: icon('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M5 21h14" stroke-dasharray="1.5 2.5"/>'),
+  book: icon('<path d="M4 19.5V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M8 7h7M8 11h5"/>'),
+  quote: icon('<path d="M7 7h4v4c0 3-2 5-4 6M15 7h4v4c0 3-2 5-4 6"/>'),
   keyboard: icon('<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>'),
   x: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
   coffee: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 3.5c-.6.8-.6 1.7 0 2.5M12 3.5c-.6.8-.6 1.7 0 2.5"/></svg>',
@@ -102,7 +110,7 @@ const footer = `
     <div class="cols">
       <div>
         <p class="wordmark">Glossa</p>
-        <p class="blurb">Select any text on the web. Know what it means, in context.</p>
+        <p class="blurb">The explainer that remembers. Select any text on the web, understand it in context, keep every word.</p>
       </div>
       <div>
         <h4>Product</h4>
@@ -161,15 +169,15 @@ const marquee = `<div class="marquee" aria-hidden="true"><div class="marquee-tra
 // ---------------------------------------------------------------------------
 
 const index = page(
-  'Glossa · Select any text. Know what it means.',
-  'A Chrome extension that explains any word, phrase or passage you select, using the page around it. Free to start, or bring your own AI key.',
+  'Glossa · The explainer that remembers',
+  'A Chrome extension that explains any word, acronym or passage you select, grounded in the page, and keeps every word you look up in your own word list. Free, no API key needed.',
   `
 <main>
 <section class="hero">
   <div class="wrap">
-    <p class="eyebrow">Chrome extension · Free to start</p>
-    <h1>Select any text.<br>Know what it means.</h1>
-    <p class="lede">Highlight a word, a phrase or a whole paragraph. Glossa reads the page around it and tells you what it means <b>here</b>, in plain language, right beside what you’re reading.</p>
+    <p class="eyebrow">Chrome extension · The explainer that remembers</p>
+    <h1>Select any text.<br>Understand it. Keep it.</h1>
+    <p class="lede">Glossa explains a word, an acronym or a whole passage using the page around it, and shows you the line it’s based on. Every word you look up joins your own word list, and the next time it shows up, anywhere, it’s already underlined.</p>
     <div class="cta-row">
       <a class="pill pill-black" href="/install">Add to Chrome, it’s free</a>
       <a class="pill pill-outline" href="#try">Try it without installing</a>
@@ -191,6 +199,7 @@ const index = page(
             <h5>priced in</h5>
             <span class="tag">Phrase</span>
             <p>Traders already expected the rate cut, so it was reflected in prices before it was announced.</p>
+            <p class="mk-from"><span>From the page</span>“a quarter-point cut already priced in”</p>
           </div>
           <div class="mk-chips"><span>Simpler</span><span>Go deeper</span><span>Examples</span><span>Translate</span></div>
         </div>
@@ -204,13 +213,13 @@ const index = page(
   <div class="wrap">
     <div class="section-head reveal">
       <p class="eyebrow">How it works</p>
-      <h2>Three moves. No new tab.</h2>
+      <h2>Select. Understand. Remember.</h2>
       <p class="sub">Glossa lives in Chrome’s side panel, so the page you’re reading never moves.</p>
     </div>
     <div class="steps">
-      <div class="tile reveal"><span class="caption">01 · Select</span><h3>Highlight anything</h3><p>One word, an acronym, a line of code, a legal clause, a whole paragraph.</p></div>
-      <div class="tile reveal"><span class="caption">02 · Ask</span><h3>Press one key</h3><p>Or click the small Explain button that appears, or right-click the selection.</p><div class="keys"><kbd>⌥ Option</kbd> + <kbd>E</kbd> on Mac · <kbd>Alt</kbd> + <kbd>E</kbd> on Windows</div></div>
-      <div class="tile reveal"><span class="caption">03 · Understand</span><h3>Read it in context</h3><p>Then go simpler, deeper, get examples, translate, or ask your own question.</p></div>
+      <div class="tile reveal"><span class="caption">01 · Select</span><h3>Highlight anything</h3><p>One word, an acronym, a line of code, a legal clause, a whole paragraph. Then press one key or click Explain.</p><div class="keys"><kbd>⌥ Option</kbd> + <kbd>E</kbd> on Mac · <kbd>Alt</kbd> + <kbd>E</kbd> on Windows</div></div>
+      <div class="tile reveal"><span class="caption">02 · Understand</span><h3>Grounded in the page</h3><p>The meaning that fits this sentence, in your language and level. If the page defines the term, Glossa uses that and quotes it.</p></div>
+      <div class="tile reveal"><span class="caption">03 · Remember</span><h3>It’s in your words</h3><p>Every lookup is saved with its sentence and page. When the word appears again, it gets a quiet underline. Hover to recall.</p></div>
     </div>
   </div>
 </section>
@@ -222,7 +231,7 @@ const index = page(
         <div>
           <p class="eyebrow">Try it right here</p>
           <h2>Select any word below.</h2>
-          <div class="pg-text" id="pg-text">
+          <div class="pg-text" id="pg-text" data-glossa-native>
             <p>After the merger, the board adopted a <b>poison pill</b> to deter a hostile bid, and the stock rallied on hopes of a white knight.</p>
             <p>Our API retries are idempotent, so a flaky network can’t double-charge anyone.</p>
             <p>She felt a quiet Schadenfreude watching the rival’s launch stall.</p>
@@ -291,17 +300,17 @@ const index = page(
     <div class="section-head reveal">
       <p class="eyebrow">Features</p>
       <h2>Built for people who read a lot.</h2>
-      <p class="sub">Students, engineers, lawyers, researchers, and anyone reading in a second language.</p>
+      <p class="sub">Engineers reading English docs, researchers, students, lawyers, new hires, and anyone reading in a second language.</p>
     </div>
     <div class="features">
-      <div class="feature reveal">${ICONS.context}<h3>Meaning in context</h3><p>Reads the sentence and nearby paragraph so you get the sense that fits the page.</p></div>
-      <div class="feature reveal">${ICONS.lang}<h3>Any language in, 20 out</h3><p>Select text in any language and read the explanation in English, Hindi, Spanish, Japanese and 16 more.</p></div>
+      <div class="feature reveal">${ICONS.quote}<h3>Grounded in the page</h3><p>Uses the page’s own definitions and spelled-out acronyms, and quotes the line it relied on. Click “Show on page” to jump to it.</p></div>
+      <div class="feature reveal">${ICONS.book}<h3>Your word list</h3><p>Every word you look up, with the sentence and page where you met it. Search it, sort it, filter it by site.</p></div>
+      <div class="feature reveal">${ICONS.seen}<h3>Seen it before</h3><p>Words from your list get a dotted underline on any page. Hover to see your meaning, and when and where you met it. Runs on the page; nothing is sent.</p></div>
+      <div class="feature reveal">${ICONS.lang}<h3>Your language, your level</h3><p>Explanations in 20 languages, at Simple, Standard or Expert level, plus a one-line meaning in your first language.</p></div>
       <div class="feature reveal">${ICONS.follow}<h3>Follow-ups on tap</h3><p>Simpler, deeper, more examples, a translation, or your own question about the selection.</p></div>
-      <div class="feature reveal">${ICONS.sound}<h3>Say it right</h3><p>Pronunciation and part of speech for single words, plus a button to hear the answer.</p></div>
-      <div class="feature reveal">${ICONS.history}<h3>History and saved words</h3><p>Search everything you’ve looked up and bookmark the words worth keeping.</p></div>
-      <div class="feature reveal">${ICONS.export}<h3>Export anytime</h3><p>Download lookups as Markdown for notes or JSON for flashcards and spreadsheets.</p></div>
-      <div class="feature reveal">${ICONS.byok}<h3>Bring your own key</h3><p>OpenAI, Anthropic, Groq, Gemini, OpenRouter, or any OpenAI-compatible server. Unlimited.</p></div>
-      <div class="feature reveal">${ICONS.frame}<h3>Works where text lives</h3><p>Articles, docs, embedded frames, and even text you’ve typed into a box.</p></div>
+      <div class="feature reveal">${ICONS.export}<h3>Export to Anki and Obsidian</h3><p>Download your words as an Anki deck file, CSV, Markdown or JSON. Your data, in open formats.</p></div>
+      <div class="feature reveal">${ICONS.byok}<h3>Private or unlimited</h3><p>Run it on the AI built into Chrome so text never leaves your computer, or bring your own OpenAI, Anthropic, Groq, Gemini or OpenRouter key.</p></div>
+      <div class="feature reveal">${ICONS.frame}<h3>Works where text lives</h3><p>Articles, docs, embedded frames, text you’ve typed, and PDFs in the built-in Glossa reader.</p></div>
       <div class="feature reveal">${ICONS.keyboard}<h3>Keyboard first</h3><p>One shortcut to explain, one to open the panel. Remap them in Chrome anytime.</p></div>
     </div>
   </div>
@@ -319,7 +328,9 @@ const index = page(
         <ul class="checklist">
           <li>Nothing is sent until you ask for an explanation.</li>
           <li>Only your selection and a little nearby text are sent, and you can switch the nearby text off.</li>
-          <li>History, saved words and settings stay in your browser.</li>
+          <li>Your word list, history and settings stay in your browser.</li>
+          <li>The “seen it before” underline runs inside the page against your local list. Nothing about the pages you read is sent.</li>
+          <li>With the free service, anonymous counts (never text) help us improve it. Switch them off in Settings.</li>
           <li>Your own API key is sent only to the provider you chose.</li>
           <li>Pause Glossa everywhere, or hide the button on any site.</li>
         </ul>
@@ -341,7 +352,7 @@ const index = page(
         <p class="sub">A daily allowance of explanations, on us.</p>
         <ul>
           <li>No API key needed: install and it just works</li>
-          <li>Every feature: follow-ups, history, export, 20 languages</li>
+          <li>Every feature: word list, underlines, follow-ups, export, 20 languages</li>
           <li>No account, no card</li>
           <li>Allowance resets every day</li>
         </ul>
@@ -369,6 +380,10 @@ const index = page(
       <h2>Questions, answered.</h2>
       <div class="faq">
         <details><summary>Do I need an API key?</summary><div class="answer"><p>No. Install the extension and it works right away on Glossa’s free service, with a daily allowance of explanations. An API key is only for people who want unlimited use or a specific model: add one in Settings and Glossa uses your provider instead.</p></div></details>
+        <details><summary>What is “Your words”?</summary><div class="answer"><p>Every word or phrase you look up is saved to a word list in your browser, together with the sentence and page where you met it. You can search it, see which words you keep looking up, export it to Anki, Obsidian, CSV or JSON, and Glossa underlines those words when they appear on other pages.</p></div></details>
+        <details><summary>Does it work on PDFs?</summary><div class="answer"><p>Yes. Chrome’s own PDF viewer hides your selection from extensions, so Glossa has a PDF reader: click the toolbar icon on a PDF and choose “Open this PDF in Glossa reader”, or open a file from your computer. Select text and press <code>⌥E</code> as usual. Files you open are not uploaded.</p></div></details>
+        <details><summary>Can it work without sending my text anywhere?</summary><div class="answer"><p>Yes, on computers that support it. In Settings, choose “On this device” and Glossa uses the AI model built into Chrome (Chrome 138 or newer), so the text never leaves your computer. Answers are shorter than the online options and come in English, Spanish or Japanese.</p></div></details>
+        <details><summary>Does Glossa read every page I visit?</summary><div class="answer"><p>To underline words you’ve already looked up, Glossa compares the page’s text with your word list inside your browser. Nothing from the page is sent anywhere unless you ask for an explanation. You can turn the underline off in Settings, or for one site from the toolbar icon.</p></div></details>
         <details><summary>What exactly gets sent when I ask for an explanation?</summary><div class="answer"><p>The text you selected, the sentence it sits in, up to about 1,800 characters of nearby text, the page title and the site’s domain. Never the whole page, your history, or anything you didn’t select. You can switch the nearby text off in Settings.</p></div></details>
         <details><summary>Which AI model does the free plan use?</summary><div class="answer"><p>One we choose and tune for fast, accurate definitions, and we upgrade it as better ones appear. Want a specific model? Add your own key and pick it.</p></div></details>
         <details><summary>How do I use my own API key?</summary><div class="answer"><p>In the extension: open the side panel, then Settings, then “My own API key”. Pick a provider, paste the key, press Save and test. You can also try your key in the playground above before installing.</p></div></details>
@@ -457,31 +472,38 @@ const privacy = page(
     <li>the text you selected (up to 4,000 characters);</li>
     <li>the sentence it appears in and up to about 1,800 characters of nearby text, unless you turn off “Use surrounding text”;</li>
     <li>the page title and domain;</li>
-    <li>your answer settings (reading level, length, language);</li>
-    <li>a random install ID, used only to apply the daily free allowance.</li>
+    <li>if the page itself defines the term or spells out the acronym, that short definition (up to 300 characters);</li>
+    <li>your answer settings (reading level, length, language, and your first language if you set one);</li>
+    <li>a random install ID, used only to apply the daily free allowance;</li>
+    <li>with the free service only, two anonymous numbers: whether the term was already in your word list, and how many words the list has. Never the words themselves. Turn this off in Settings → Share anonymous usage counts.</li>
   </ul>
-  <p>Glossa never reads or sends whole pages, pages you didn’t select text on, form contents you didn’t select, cookies, or your browsing history.</p>
+  <p>Glossa never sends whole pages, pages you didn’t select text on, form contents you didn’t select, cookies, your word list or your browsing history.</p>
+  <p>PDFs you open in the Glossa reader are read inside your browser and never uploaded; only the text you ask about is sent, as above.</p>
+  <p>To underline words you’ve already looked up, Glossa compares the text of the page with your word list inside your browser. That comparison never leaves the page, and you can turn it off in Settings or per site.</p>
 
   <h2>Who receives it</h2>
   <table>
     <tr><th>Mode</th><th>Recipient</th></tr>
     <tr><td>Free plan</td><td>Glossa’s API, which forwards the request to an AI model provider under contract to generate the answer.</td></tr>
     <tr><td>Your own key</td><td>The provider you chose, directly from your browser. Glossa’s servers are not involved.</td></tr>
+    <tr><td>On this device</td><td>Nobody. The AI model built into Chrome answers on your computer.</td></tr>
   </table>
 
   <h2>What our servers keep</h2>
-  <p>We don’t store the text you select or the answers. To enforce the free allowance we keep a counter per install ID and per IP address in memory, reset daily. Request logs record method, path, status and timing only, never content. Feedback you send from the feedback page is stored so we can read it.</p>
+  <p>We don’t store the text you select or the answers. To enforce the free allowance we keep a counter per install ID and per IP address, reset daily. Request logs record method, path, status and timing only, never content. Feedback you send from the feedback page is stored so we can read it.</p>
+  <p>Unless you opt out, we also keep anonymous daily totals: how many lookups and follow-ups there were, how many were repeat lookups, how many installs were active, how many have a word list of 10 or more, and how many came back after 7 and 30 days. Installs are counted through a one-way hash of the install ID; no text, URLs or words are stored. Daily totals are kept for about four months, and the hashed first-seen date for about thirteen.</p>
+  <p>We use this information only to provide and improve Glossa. We don’t sell it, share it for advertising, or use your text to train models.</p>
 
   <h2>What stays in your browser</h2>
-  <p>Settings, history, saved items, cached answers and any API key you enter are kept in your browser’s storage on your device. Delete them from Settings → Delete everything, or by removing the extension.</p>
+  <p>Settings, your word list, history, saved items, cached answers and any API key you enter are kept in your browser’s storage on your device. Delete them from Settings → Delete everything, or by removing the extension. Export your word list anytime from Your words.</p>
 
   <h2>Permissions, explained</h2>
   <table>
     <tr><th>Permission</th><th>Why</th></tr>
-    <tr><td>Read page content</td><td>To read your selection and the text around it, and show the Explain button.</td></tr>
+    <tr><td>Read page content</td><td>To read your selection and the text around it, show the Explain button, and underline words from your word list.</td></tr>
     <tr><td>Side panel</td><td>To show explanations next to the page.</td></tr>
     <tr><td>Context menus</td><td>For the right-click “Explain” item.</td></tr>
-    <tr><td>Storage</td><td>To keep your settings and history on your device.</td></tr>
+    <tr><td>Storage, unlimited storage</td><td>To keep your settings, history and word list on your device, without a size cap on a long word list.</td></tr>
   </table>
 
   <h2>Children</h2>
@@ -574,6 +596,9 @@ const demo = page(
   <h2 id="money">Meanwhile, in finance</h2>
   <p id="p-bank">The rower pulled the boat onto the <span id="t-bank">bank</span> and watched the river rise.</p>
   <p id="p-priced">With a quarter-point cut already <span id="t-priced">priced in</span>, traders shrugged, and the yield curve stayed stubbornly inverted.</p>
+  <p id="p-nim">Lenders reported a wider net interest margin (NIM) this quarter as deposit costs eased.</p>
+  <p id="p-nim2">Analysts still expect <span id="t-nim">NIM</span> to narrow next year.</p>
+  <p id="p-later">Days later another storm came through, and the river burst its bank again.</p>
   <h2 id="multi">A sentence in another language</h2>
   <p id="p-de" lang="de">Das ist ein <span id="t-schaden">Schadenfreude</span>-Moment für die Konkurrenz.</p>
   <h2 id="code">Some code</h2>
@@ -666,6 +691,21 @@ const siteJs = `// Glossa site: nav, scroll reveal, smooth FAQ, feedback form. N
 })();
 `;
 
+function sitemap() {
+  const day = new Date().toISOString().slice(0, 10);
+  const pages = [
+    ['/', '1.0', 'weekly'],
+    ['/install', '0.8', 'monthly'],
+    ['/demo', '0.5', 'monthly'],
+    ['/privacy', '0.3', 'yearly'],
+    ['/terms', '0.3', 'yearly'],
+  ];
+  const urls = pages
+    .map(([p, priority, freq]) => `  <url>\n    <loc>${SITE_URL}${p}</loc>\n    <lastmod>${day}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`)
+    .join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+}
+
 const files = {
   'index.html': index,
   'install.html': install,
@@ -677,7 +717,8 @@ const files = {
   'demo-frame.html': demoFrame,
   'boot.js': bootJs,
   'site.js': siteJs,
-  'robots.txt': 'User-agent: *\nAllow: /\n',
+  'robots.txt': `User-agent: *\nAllow: /\nDisallow: /goodbye\n\nSitemap: ${SITE_URL}/sitemap.xml\n`,
+  'sitemap.xml': sitemap(),
 };
 fs.mkdirSync(out, { recursive: true });
 for (const [name, content] of Object.entries(files)) fs.writeFileSync(path.join(out, name), content);

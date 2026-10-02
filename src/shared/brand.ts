@@ -25,7 +25,8 @@ export const LIMITS = {
   maxSelectionChars: 4000,
   maxContextChars: 1800,
   maxQuestionChars: 500,
-  historyItems: 500,
+  historyItems: 2000,
+  lexiconItems: 20000,
   cacheItems: 200,
   // Covers a cold start, the server's 24s model budget and one retry.
   requestTimeoutMs: 40000,

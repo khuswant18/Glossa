@@ -28,11 +28,17 @@ export const PRODUCT_FACTS = `PRODUCT FACTS (the only things you may say about G
 - Glossa is a Chrome extension that explains text you select on a web page, using the surrounding sentence so the meaning fits. Answers appear in Chrome's side panel.
 - To use it: select text, then press Option+E on Mac or Alt+E elsewhere, click the small Explain button next to the selection, or right-click and choose Explain. Alt+Shift+E opens the side panel. Shortcuts can be changed at chrome://extensions/shortcuts.
 - After an answer you can ask for it simpler, go deeper, get examples, translate it, or ask your own question.
-- Answers can be in 20 languages, with a reading level (Simple, Standard, Expert) and length (Brief, Normal, Detailed) set in Settings.
-- History and saved words are kept in your browser and can be searched and exported as Markdown or JSON.
+- Answers can be in 20 languages, with a reading level (Simple, Standard, Expert) and length (Brief, Normal, Detailed) set in Settings. If you set "My first language", each answer also gets a one-line meaning in that language.
+- When the page itself defines a term or spells out an acronym, Glossa uses that and shows the exact sentence from the page. Quotes from the page are checked against the page text before they are shown.
+- Every word or phrase you look up joins "Your words", a word list kept only in your browser with the sentence and page where you met it. It can be searched, filtered by site and exported for Anki, as CSV, Markdown (for Obsidian and other note apps) or JSON. History is kept too and can be exported as Markdown or JSON.
+- When a word from your list appears on another page, Glossa gives it a dotted underline; hovering shows your saved meaning, when and where you last met it, and the sentence it was in.
+- "Show on page" next to a quote scrolls the page to that exact sentence and highlights it. Your words also has a weekly recap (new words, lookups, days reading, words known, most-met word) that you can save or copy as an image. This runs on the page and sends nothing. It can be turned off in Settings or per site from the toolbar icon.
 - The free plan includes a daily allowance of explanations. There is no paid Glossa plan. For unlimited use, people can add their own API key from OpenAI, Anthropic, Groq, Google Gemini, OpenRouter or an OpenAI-compatible server; the key is stored only in their browser and sent only to that provider, never to Glossa's servers.
-- When you ask for an explanation, Glossa sends the selected text, its sentence, some nearby text (this can be turned off in Settings), the page title and domain. It does not send whole pages or browsing history.
-- Browser pages, the Chrome Web Store and Chrome's built-in PDF viewer block extensions; there you can type a word into the side panel instead.`;
+- When you ask for an explanation, Glossa sends the selected text, its sentence, some nearby text (this can be turned off in Settings), the page title and domain. It does not send whole pages or browsing history. With the free service it can also send anonymous counts (whether the word was already in your list, and how many words the list has), never text; this can be turned off in Settings.
+- "Review" in Your words is a short recall check: words come up a day after you look them up, then less often as you remember them, at most 10 at a time. A word counts as known after you recall it three times in a row.
+- Answers can come from Glossa's free service, from your own API key, or "On this device": the AI model built into Chrome (Chrome 138+ on supported computers), which keeps the text on your computer. On-device answers are in English, Spanish or Japanese.
+- Chrome's built-in PDF viewer hides selections from extensions, so Glossa has its own PDF reader: open it from the toolbar icon or the side panel, then select text as usual. Files you open there are not uploaded.
+- Browser pages and the Chrome Web Store block extensions; there you can type a word into the side panel instead.`;
 
 export const SCOPE_REPLY = 'I can only help with the text you selected. Select something on the page and ask me about it.';
 
@@ -181,11 +187,11 @@ export function secretsFor(config: { apiKey?: string; model?: string; url?: stri
 }
 
 /** Checks every text field of a structured explanation; returns null when it leaks. */
-export function scrubExplanation<T extends { headword: string; meaning: string; explanation?: string; definition?: string; example?: string; note?: string; synonyms?: string[]; keyTerms?: { term: string; definition: string }[] }>(
+export function scrubExplanation<T extends { headword: string; meaning: string; explanation?: string; definition?: string; example?: string; note?: string; synonyms?: string[]; keyTerms?: { term: string; definition: string }[]; expansion?: string; fromPage?: string; gloss?: string }>(
   e: T,
   opts: ScrubOptions = {}
 ): T | null {
-  const fields = [e.headword, e.meaning, e.explanation, e.definition, e.example, e.note, ...(e.synonyms || []), ...(e.keyTerms || []).flatMap((k) => [k.term, k.definition])];
+  const fields = [e.headword, e.meaning, e.explanation, e.definition, e.example, e.note, e.expansion, e.fromPage, e.gloss, ...(e.synonyms || []), ...(e.keyTerms || []).flatMap((k) => [k.term, k.definition])];
   return fields.some((f) => f && leaks(f, opts)) ? null : e;
 }
 

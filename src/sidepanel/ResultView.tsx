@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  ArrowUpRight,
   Bookmark,
   BookmarkCheck,
   Check,
   Copy,
   ExternalLink,
+  Highlighter,
   KeyRound,
   MousePointerClick,
   RotateCw,
@@ -21,6 +23,8 @@ import { Markdown, toPlain } from '../ui/Markdown';
 import { copyText, explanationToText, hostOf, langCode, speak } from '../ui/util';
 import type { Current } from './App';
 import { LookupBox } from './HomeView';
+import { openInReader } from '../shared/pdf';
+import { showOnPage } from './showOnPage';
 
 function Favicon({ url }: { url: string }) {
   const [ok, setOk] = useState(true);
@@ -47,8 +51,11 @@ function Quote({ text, truncated }: { text: string; truncated?: boolean }) {
   const long = text.length > 220 || text.split('\n').length > 4;
   return (
     <div>
+      <div className="quote-label">
+        <Highlighter size={11} /> You selected
+      </div>
       <div className={`quote${long && !open ? ' clamp' : ''}`} data-testid="selected-text">
-        {text}
+        <span className="sel">{text}</span>
       </div>
       {long && (
         <button className="quote-more" onClick={() => setOpen(!open)}>
@@ -142,7 +149,7 @@ export function ErrorView({
               Use my own API key
             </button>
           )}
-          {settings.aiSource === 'own-key' && (keyProblem || error.code === 'bad-request' || error.code === 'quota') && (
+          {settings.aiSource !== 'hosted' && (keyProblem || error.code === 'bad-request' || error.code === 'quota' || settings.aiSource === 'on-device') && (
             <button className="btn btn-secondary" onClick={onUseHosted}>
               Use Glossa free instead
             </button>
@@ -169,10 +176,15 @@ export function NoticeView({
     <>
       <LookupBox onSubmit={onLookup} autoFocus={notice.kind === 'restricted'} />
       <div className="state" data-testid="notice">
-        <div className="glyph">{notice.kind === 'restricted' ? <ShieldOff size={16} /> : <MousePointerClick size={16} />}</div>
-        <h3>{notice.kind === 'restricted' ? 'This page is off-limits' : 'Nothing selected'}</h3>
+        <div className="glyph">{notice.kind === 'restricted' || notice.kind === 'pdf' ? <ShieldOff size={16} /> : <MousePointerClick size={16} />}</div>
+        <h3>{notice.kind === 'restricted' ? 'This page is off-limits' : notice.kind === 'pdf' ? 'This is a PDF' : 'Nothing selected'}</h3>
         <p>{notice.message}</p>
         <div className="btns">
+          {notice.kind === 'pdf' && (
+            <button className="btn btn-primary" onClick={() => void openInReader(notice.url)} data-testid="open-pdf">
+              Open in Glossa reader
+            </button>
+          )}
           <button className="btn btn-secondary" onClick={onHome}>
             OK
           </button>
@@ -211,6 +223,7 @@ export function ResultView({
   const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [question, setQuestion] = useState('');
+  const [shown, setShown] = useState<'shown' | 'opened' | 'missing' | null>(null);
   const stopRef = useRef<() => void>(() => undefined);
   const threadEnd = useRef<HTMLDivElement>(null);
 
@@ -218,6 +231,7 @@ export function ResultView({
   useEffect(() => {
     stopRef.current();
     setQuestion('');
+    setShown(null);
   }, [lookup.id]);
   useEffect(() => {
     if (followBusy || lookup.followUps.length) threadEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -255,10 +269,20 @@ export function ResultView({
         <div className="headline">
           <div className="grow">
             <h1 data-testid="headword">{e.headword}</h1>
-            {(e.pronunciation || e.partOfSpeech) && (
+            {e.expansion && (
+              <div className="expansion" data-testid="expansion">
+                {e.expansion}
+              </div>
+            )}
+            {(e.pronunciation || e.partOfSpeech || e.confidence === 'low') && (
               <div className="pron">
                 {e.pronunciation && <span className="ipa">{e.pronunciation}</span>}
                 {e.partOfSpeech && <span className="tag">{e.partOfSpeech}</span>}
+                {e.confidence === 'low' && (
+                  <span className="tag tag-warn" title="The page doesn’t give enough to be sure. Check the source." data-testid="uncertain">
+                    Not certain
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -277,6 +301,29 @@ export function ResultView({
         <p className="meaning" data-testid="meaning">
           {e.meaning}
         </p>
+        {e.gloss && (
+          <p className="gloss" data-testid="gloss" lang={langCode(settings.nativeLanguage)}>
+            {e.gloss}
+          </p>
+        )}
+        {e.fromPage && (
+          <figure className="evidence" data-testid="from-page">
+            <figcaption>
+              <span>{e.basis === 'page' ? 'Defined on this page' : 'From the page'}</span>
+              {lookup.selection.pageUrl && (
+                <button
+                  className="evidence-go"
+                  onClick={async () => setShown(await showOnPage(lookup.selection.pageUrl, e.fromPage!))}
+                  data-testid="show-on-page"
+                >
+                  Show on page <ArrowUpRight size={11} />
+                </button>
+              )}
+            </figcaption>
+            <blockquote>{e.fromPage}</blockquote>
+            {shown === 'missing' && <div className="evidence-miss">That sentence isn’t on the page anymore.</div>}
+          </figure>
+        )}
         {e.explanation && <p className="explain">{e.explanation}</p>}
 
         {(e.definition || e.example || e.synonyms || e.keyTerms) && (

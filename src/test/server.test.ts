@@ -5,27 +5,31 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { configFromEnv, createServer } from '../../server/src/app';
+import { MemoryStats } from '../../server/src/stats';
 
 const EXT = 'chrome-extension://abcdefghijklmnopabcdefghijklmnop';
 
 // A fake OpenAI-compatible upstream whose behaviour each test can script.
-let upstreamMode: 'ok' | 'auth' | 'busy-primary' | 'garbage' | 'slow' | 'leak' = 'ok';
-const upstreamCalls: { model: string; auth: string }[] = [];
+let upstreamMode: 'ok' | 'auth' | 'busy-primary' | 'garbage' | 'slow' | 'leak' | 'grounded' = 'ok';
+const upstreamCalls: { model: string; auth: string; effort?: string }[] = [];
 const upstream = http.createServer((req, res) => {
   let body = '';
   req.on('data', (c) => (body += c));
   req.on('end', () => {
     const json = JSON.parse(body);
-    upstreamCalls.push({ model: json.model, auth: String(req.headers.authorization) });
+    upstreamCalls.push({ model: json.model, auth: String(req.headers.authorization), effort: json.reasoning_effort });
     const reply = (content: string) =>
       res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ choices: [{ message: { content } }] }));
     if (upstreamMode === 'auth') return res.writeHead(401).end('{"error":{"message":"Invalid API Key for groq org_123"}}');
-    if (upstreamMode === 'busy-primary' && json.model === 'primary-model') return res.writeHead(429).end('{}');
+    if (upstreamMode === 'busy-primary' && (json.model === 'primary-model' || /gpt-oss/.test(json.model))) return res.writeHead(429).end('{}');
     if (upstreamMode === 'garbage') return reply('');
     if (upstreamMode === 'leak') {
       return reply(json.messages[0].content.includes('"answer"') ? '{"answer":"Sure! I run on primary-model."}' : '{"headword":"x","meaning":"This answer comes from primary-model on our servers."}');
     }
     if (upstreamMode === 'slow') return setTimeout(() => reply('{"meaning":"late"}'), 400);
+    if (upstreamMode === 'grounded') {
+      return reply('{"kind":"word","headword":"bank","meaning":"Edge of a river.","fromPage":"hit the bank","basis":"page","expansion":"","confidence":"high"}');
+    }
     const isFollow = json.messages[0].content.includes('"answer"');
     reply(isFollow ? '{"answer":"Here is **more**."}' : '{"kind":"word","headword":"bank","meaning":"Edge of a river."}');
   });
@@ -296,5 +300,77 @@ describe('shared rate-limit store (Upstash REST)', () => {
     a.close();
     b.close();
     upstash.close();
+  });
+});
+
+describe('grounding on the server', () => {
+  it('keeps a page quote only when it is really in the sent text', async () => {
+    upstreamMode = 'grounded';
+    const ok = await post('/v1/explain', { text: 'bank', sentence: 'The boat hit the bank.' });
+    expect(ok.json.result.fromPage).toBe('hit the bank');
+    expect(ok.json.result.basis).toBe('page');
+    const bad = await post('/v1/explain', { text: 'bank', sentence: 'The bank raised rates.' });
+    expect(bad.json.result.fromPage).toBeUndefined();
+    expect(bad.json.result.basis).toBe('general');
+  });
+
+  it('accepts a page definition and first language and puts them in the prompt', async () => {
+    const { res } = await post('/v1/explain', { text: 'NIM', pageDefinition: 'Net Interest Margin (NIM)', nativeLanguage: 'Hindi' });
+    expect(res.status).toBe(200);
+  });
+});
+
+describe('anonymous usage counts', () => {
+  const statsGet = (token?: string) =>
+    fetch(`${base}/v1/stats?days=2`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+
+  it('is hidden unless a token is configured and given', async () => {
+    expect((await statsGet()).status).toBe(404);
+    expect((await statsGet('anything')).status).toBe(404);
+  });
+
+  it('counts lookups, repeats and word lists, and respects the opt-out', async () => {
+    api.close();
+    api = start({ STATS_TOKEN: 'stats-secret', DAILY_LIMIT: '50' });
+    base = `http://127.0.0.1:${await listen(api)}`;
+    await post('/v1/explain', { text: 'bank' }, { 'X-Glossa-Repeat': '1', 'X-Glossa-Lexicon': '12' });
+    await post('/v1/explain', { text: 'river' }, { 'X-Glossa-Repeat': '0', 'X-Glossa-Lexicon': '3' });
+    await post('/v1/follow-up', { kind: 'simpler', text: 'bank', meaning: 'Edge.' });
+    await post('/v1/explain', { text: 'secret' }, { 'X-Glossa-Stats': 'off', 'X-Glossa-Install': 'install-bbbb-0002' });
+    expect((await statsGet('wrong-secret')).status).toBe(404);
+    const res = await statsGet('stats-secret');
+    expect(res.status).toBe(200);
+    const { days } = await res.json();
+    expect(days).toHaveLength(2);
+    expect(days[0]).toMatchObject({ lookups: 2, followUps: 1, repeatLookups: 1, activeInstalls: 1, newInstalls: 1, installsWithWordList10: 1 });
+  });
+
+  it('computes D7/D30 retention per first-seen cohort without double counting', async () => {
+    const stats = new MemoryStats();
+    const d0 = Date.parse('2026-01-01T10:00:00Z');
+    const day = 86_400_000;
+    await stats.record({ install: 'a', kind: 'explain', repeat: false, lexicon: 0, now: d0 });
+    await stats.record({ install: 'b', kind: 'explain', repeat: false, lexicon: 0, now: d0 });
+    await stats.record({ install: 'a', kind: 'explain', repeat: false, lexicon: 0, now: d0 + 3 * day });
+    await stats.record({ install: 'a', kind: 'explain', repeat: false, lexicon: 0, now: d0 + 8 * day });
+    await stats.record({ install: 'a', kind: 'explain', repeat: false, lexicon: 0, now: d0 + 9 * day });
+    await stats.record({ install: 'a', kind: 'explain', repeat: false, lexicon: 0, now: d0 + 31 * day });
+    const rows = await stats.report(40, d0 + 31 * day);
+    const cohort = rows.find((r) => r.day === '2026-01-01')!;
+    expect(cohort).toMatchObject({ newInstalls: 2, retainedD7: 1, retainedD30: 1, activeInstalls: 2 });
+  });
+});
+
+describe('reasoning effort', () => {
+  it('asks gpt-oss models for low effort and leaves other models alone', async () => {
+    api.close();
+    api = start({ UPSTREAM_MODEL: 'openai/gpt-oss-120b', UPSTREAM_FALLBACK_MODEL: 'llama-3.3-70b-versatile' });
+    base = `http://127.0.0.1:${await listen(api)}`;
+    upstreamMode = 'busy-primary';
+    await post('/v1/explain', { text: 'effort-check' });
+    expect(upstreamCalls.map((c) => [c.model, c.effort])).toEqual([
+      ['openai/gpt-oss-120b', 'low'],
+      ['llama-3.3-70b-versatile', undefined],
+    ]);
   });
 });

@@ -17,6 +17,7 @@ import type { Explanation, ExplainRequest, FollowUpRequest, Settings } from '../
 import { anthropicChat } from './anthropic';
 import { AiError, toAiError } from './errors';
 import { hostedCall } from './hosted';
+import { onDeviceChat } from './ondevice';
 import { openAiCompatibleChat } from './openai-compatible';
 
 export interface ExplainOutcome {
@@ -27,6 +28,7 @@ export interface ExplainOutcome {
 
 export function sourceLabel(settings: Settings): string {
   if (settings.aiSource === 'hosted') return BRAND.hostedModelLabel;
+  if (settings.aiSource === 'on-device') return 'On this device';
   const provider = getProvider(settings.provider);
   return `${provider.label} · ${resolveModel(settings)}`;
 }
@@ -43,6 +45,23 @@ function resolveEndpoint(settings: Settings): string {
     return /\/chat\/completions$/.test(base) ? base : `${base}/chat/completions`;
   }
   return getProvider(settings.provider).endpoint;
+}
+
+/** Anonymous signals sent with hosted requests; just "off" when the user opted out. Never text. */
+export interface StatsHint {
+  repeat?: boolean;
+  lexicon?: number;
+}
+
+function statsHeaders(settings: Settings, hint: StatsHint = {}): Record<string, string> {
+  if (!settings.shareStats) return { 'X-Glossa-Stats': 'off' };
+  return { 'X-Glossa-Repeat': hint.repeat ? '1' : '0', 'X-Glossa-Lexicon': String(Math.max(0, Math.floor(hint.lexicon || 0))) };
+}
+
+function whoLabel(settings: Settings): string {
+  if (settings.aiSource === 'hosted') return 'the Glossa service';
+  if (settings.aiSource === 'on-device') return 'The on-device model';
+  return getProvider(settings.provider).label;
 }
 
 function withTimeout(signal?: AbortSignal): AbortSignal {
@@ -82,14 +101,14 @@ async function ownKeyChat(settings: Settings, system: string, user: string, sign
 }
 
 function cacheKey(kind: string, settings: Settings, payload: unknown): string {
-  const who = settings.aiSource === 'hosted' ? 'hosted' : `${settings.provider}:${resolveModel(settings)}`;
+  const who = settings.aiSource === 'own-key' ? `${settings.provider}:${resolveModel(settings)}` : settings.aiSource;
   return `${kind}:${who}:${fnv1a(JSON.stringify(payload))}`;
 }
 
 export async function explain(
   request: ExplainRequest,
   settings: Settings,
-  opts: { signal?: AbortSignal; bypassCache?: boolean } = {}
+  opts: { signal?: AbortSignal; bypassCache?: boolean; stats?: StatsHint } = {}
 ): Promise<ExplainOutcome> {
   const req: ExplainRequest = {
     ...request,
@@ -98,6 +117,8 @@ export async function explain(
     sentence: settings.includeContext ? request.sentence?.slice(0, 600) : undefined,
     pageTitle: settings.includeContext ? request.pageTitle?.slice(0, 200) : undefined,
     pageUrl: settings.includeContext ? request.pageUrl : undefined,
+    pageDefinition: settings.includeContext ? request.pageDefinition?.slice(0, 300) : undefined,
+    nativeLanguage: request.nativeLanguage || undefined,
   };
   if (!req.text.trim()) throw new AiError('bad-request', 'Select some text first.');
 
@@ -120,19 +141,23 @@ export async function explain(
       const body = await hostedCall<{ result: Explanation }>('/v1/explain', opts.bypassCache ? { ...req, fresh: true } : req, {
         signal,
         serverUrl: settings.serverUrl,
+        headers: statsHeaders(settings, opts.stats),
       });
       if (!body?.result?.meaning) throw new AiError('bad-response', 'The Glossa service returned an empty answer.');
       result = body.result;
     } else {
       const { system, user } = buildExplainPrompt(req);
-      const raw = await ownKeyChat(settings, system, user, signal);
-      result = normalizeExplanation(raw, req.text);
+      const raw =
+        settings.aiSource === 'on-device'
+          ? await onDeviceChat(system, user, req.language, signal)
+          : await ownKeyChat(settings, system, user, signal);
+      result = normalizeExplanation(raw, req.text, [req.sentence, req.context, req.pageDefinition].filter(Boolean).join('\n'));
     }
-    const userText = [req.text, req.sentence, req.context, req.pageTitle].filter(Boolean).join(' ');
+    const userText = [req.text, req.sentence, req.context, req.pageTitle, req.pageDefinition].filter(Boolean).join(' ');
     const ownKey = settings.aiSource === 'own-key' ? [settings.apiKeys[settings.provider] || ''] : [];
     result = scrubExplanation(result, { userText, secrets: ownKey }) || guardExplanation();
   } catch (err) {
-    throw toAiError(err, settings.aiSource === 'hosted' ? 'the Glossa service' : getProvider(settings.provider).label);
+    throw toAiError(err, whoLabel(settings));
   }
 
   await cachePut(key, result);
@@ -142,7 +167,7 @@ export async function explain(
 export async function followUp(
   request: FollowUpRequest,
   settings: Settings,
-  opts: { signal?: AbortSignal } = {}
+  opts: { signal?: AbortSignal; stats?: StatsHint } = {}
 ): Promise<{ answer: string; source: string }> {
   const req: FollowUpRequest = {
     ...request,
@@ -161,15 +186,19 @@ export async function followUp(
       const body = await hostedCall<{ answer: string }>('/v1/follow-up', req, {
         signal,
         serverUrl: settings.serverUrl,
+        headers: statsHeaders(settings, opts.stats),
       });
       if (!body?.answer) throw new AiError('bad-response', 'The Glossa service returned an empty answer.');
       return { answer: scrubText(body.answer, { userText }), source: sourceLabel(settings) };
     }
     const { system, user } = buildFollowUpPrompt(req);
-    const raw = await ownKeyChat(settings, system, user, signal);
+    const raw =
+      settings.aiSource === 'on-device'
+        ? await onDeviceChat(system, user, req.language, signal)
+        : await ownKeyChat(settings, system, user, signal);
     return { answer: scrubText(normalizeFollowUp(raw), { userText, secrets: ownKey }), source: sourceLabel(settings) };
   } catch (err) {
-    throw toAiError(err, settings.aiSource === 'hosted' ? 'the Glossa service' : getProvider(settings.provider).label);
+    throw toAiError(err, whoLabel(settings));
   }
 }
 

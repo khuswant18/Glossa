@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Search, Star } from 'lucide-react';
+import { ArrowRight, BookOpen, Search, Star } from 'lucide-react';
 import { fetchUsage } from '../ai/hosted';
 import { resolveModel } from '../ai/client';
 import { getProvider } from '../shared/catalog';
-import { getQuota } from '../shared/storage';
+import { KEYS, getLexicon, getQuota } from '../shared/storage';
+import { dueEntries } from '../shared/lexicon';
+import { openInReader } from '../shared/pdf';
 import type { Lookup, Quota, Settings } from '../shared/types';
 import { useShortcut } from '../ui/hooks';
 import { hostOf, timeAgo } from '../ui/util';
@@ -111,6 +113,7 @@ export function HomeView({
   onExplainTab,
   onOpen,
   onSeeAll,
+  onReview,
 }: {
   settings: Settings;
   history: Lookup[];
@@ -118,9 +121,22 @@ export function HomeView({
   onExplainTab: () => void;
   onOpen: (l: Lookup) => void;
   onSeeAll: () => void;
+  onReview: () => void;
 }) {
   const shortcut = useShortcut();
   const recent = history.slice(0, 5);
+  const [due, setDue] = useState(0);
+
+  useEffect(() => {
+    const load = () => void getLexicon().then((list) => setDue(dueEntries(list, Date.now(), Infinity).length));
+    load();
+    if (typeof chrome === 'undefined' || !chrome.storage?.onChanged) return;
+    const onChange = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === 'local' && changes[KEYS.terms]) load();
+    };
+    chrome.storage.onChanged.addListener(onChange);
+    return () => chrome.storage.onChanged.removeListener(onChange);
+  }, []);
 
   return (
     <>
@@ -156,7 +172,25 @@ export function HomeView({
         <button className="btn btn-primary btn-block" onClick={onExplainTab} data-testid="explain-selection">
           Explain current selection
         </button>
+        <button className="linkish home-pdf" onClick={() => void openInReader()} data-testid="open-reader">
+          Reading a PDF? Open it in the Glossa reader
+        </button>
       </section>
+
+      {due > 0 && (
+        <button className="review-nudge" onClick={onReview} data-testid="review-nudge">
+          <span className="nudge-icon">
+            <BookOpen size={15} />
+          </span>
+          <span>
+            <b>
+              {due} word{due === 1 ? '' : 's'} to review
+            </b>
+            <span className="muted"> · about {Math.max(1, Math.round(Math.min(due, 10) / 4))} min</span>
+          </span>
+          <ArrowRight size={14} />
+        </button>
+      )}
 
       {recent.length > 0 && (
         <section>

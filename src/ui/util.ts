@@ -38,8 +38,11 @@ export function explanationToText(e: Explanation, selected?: string): string {
   const parts: string[] = [];
   const head = [e.headword, e.pronunciation, e.partOfSpeech].filter(Boolean).join('  ');
   parts.push(head);
+  if (e.expansion) parts.push(e.expansion);
   if (selected && selected !== e.headword) parts.push(`“${selected}”`);
   parts.push('', e.meaning);
+  if (e.gloss) parts.push(e.gloss);
+  if (e.fromPage) parts.push('', `From the page: “${e.fromPage}”`);
   if (e.explanation) parts.push('', e.explanation);
   if (e.definition) parts.push('', `In general: ${e.definition}`);
   if (e.example) parts.push('', `Example: ${e.example}`);
@@ -53,8 +56,11 @@ export function lookupToMarkdown(l: Lookup): string {
   const e = l.result;
   const lines = [`## ${e.headword}${e.pronunciation ? ` ${e.pronunciation}` : ''}`];
   if (e.partOfSpeech) lines.push(`*${e.partOfSpeech}*`);
+  if (e.expansion) lines.push(`*${e.expansion}*`);
   if (l.selection.text !== e.headword) lines.push('', `> ${l.selection.text.replace(/\n/g, '\n> ')}`);
   lines.push('', e.meaning);
+  if (e.gloss) lines.push('', e.gloss);
+  if (e.fromPage) lines.push('', `**From the page:** “${e.fromPage}”`);
   if (e.explanation) lines.push('', e.explanation);
   if (e.definition) lines.push('', `**In general:** ${e.definition}`);
   if (e.example) lines.push('', `**Example:** ${e.example}`);

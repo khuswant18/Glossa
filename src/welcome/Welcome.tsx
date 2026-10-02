@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { WEBSITE_URL } from '../shared/brand';
+import { LANGUAGES } from '../shared/catalog';
+import type { ReadingLevel } from '../shared/types';
 import { openShortcutSettings, useApplyTheme, useSettings, useShortcut } from '../ui/hooks';
 import { Wordmark } from '../ui/Logo';
 
 export function Welcome() {
-  const [settings] = useSettings();
+  const [settings, update] = useSettings();
   useApplyTheme(settings);
   const shortcut = useShortcut();
   const [windowId, setWindowId] = useState<number | undefined>();
@@ -44,6 +46,45 @@ export function Welcome() {
           </p>
         </article>
 
+        <section className="w-profile" aria-labelledby="profile-title" data-testid="reader-profile">
+          <div>
+            <h2 id="profile-title">Make it yours</h2>
+            <p>Glossa uses this for every answer. Change it anytime in Settings.</p>
+          </div>
+          <div className="w-fields">
+            <label>
+              <span>Explain in</span>
+              <select className="select" value={settings.language} onChange={(e) => void update({ language: e.target.value })}>
+                {LANGUAGES.map((l) => (
+                  <option key={l}>{l}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>My first language</span>
+              <select
+                className="select"
+                value={settings.nativeLanguage}
+                onChange={(e) => void update({ nativeLanguage: e.target.value })}
+                data-testid="welcome-native"
+              >
+                <option value="">Same / none</option>
+                {LANGUAGES.map((l) => (
+                  <option key={l}>{l}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Level</span>
+              <select className="select" value={settings.level} onChange={(e) => void update({ level: e.target.value as ReadingLevel })}>
+                <option value="simple">Simple</option>
+                <option value="standard">Standard</option>
+                <option value="expert">Expert</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
         {shortcut === '' && (
           <div className="w-warn" role="alert">
             <div>
@@ -75,8 +116,11 @@ export function Welcome() {
           </div>
           <div className="w-cell">
             <span className="w-n">03</span>
-            <h3>Private by design</h3>
-            <p>Only the text you select and a little of the text around it is sent. History stays in this browser.</p>
+            <h3>It remembers, privately</h3>
+            <p>
+              Every word you look up joins your word list, and Glossa underlines it when it shows up again. All of it stays in this
+              browser. Only the text you select, plus a little around it, is sent for an answer.
+            </p>
             <a href={`${WEBSITE_URL}/privacy`} target="_blank" rel="noreferrer">
               Privacy policy
             </a>

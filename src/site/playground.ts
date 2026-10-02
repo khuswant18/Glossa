@@ -143,7 +143,8 @@ export function initPlayground(): void {
   });
 
   const settings = (): Settings => {
-    const base = { ...DEFAULT_SETTINGS, language: lang.value || 'English', includeContext: true };
+    // The website playground isn't an install: keep it out of the usage counts.
+    const base = { ...DEFAULT_SETTINGS, language: lang.value || 'English', includeContext: true, shareStats: false };
     if (mode === 'hosted') return mergeSettings({ ...base, aiSource: 'hosted' });
     return mergeSettings({
       ...base,
@@ -187,7 +188,7 @@ export function initPlayground(): void {
     result.textContent = '';
     result.setAttribute('aria-busy', 'true');
     result.append(
-      el('div', { class: 'pg-quote' }, sel.text),
+      el('div', { class: 'pg-quote' }, el('span', {}, sel.text)),
       el('div', { class: 'pg-sk', style: 'width:40%;height:22px' }),
       el('div', { class: 'pg-sk' }),
       el('div', { class: 'pg-sk', style: 'width:80%' })
@@ -216,7 +217,7 @@ export function initPlayground(): void {
     result.removeAttribute('aria-busy');
     result.textContent = '';
     const card = el('article', { class: 'pg-card', 'data-testid': 'pg-card' });
-    if (sel.text.toLowerCase() !== e.headword.toLowerCase()) card.append(el('div', { class: 'pg-quote' }, sel.text));
+    if (sel.text.toLowerCase() !== e.headword.toLowerCase()) card.append(el('div', { class: 'pg-quote' }, el('span', {}, sel.text)));
     const head = el('div', { class: 'pg-head' }, el('h3', { 'data-testid': 'pg-headword' }, e.headword));
     const meta = el('div', { class: 'pg-meta' });
     if (e.pronunciation) meta.append(el('span', { class: 'mono' }, e.pronunciation));
