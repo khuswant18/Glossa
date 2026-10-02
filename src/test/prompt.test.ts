@@ -110,3 +110,58 @@ describe('normalizeFollowUp', () => {
     expect(() => normalizeFollowUp('{"answer":""}')).toThrow();
   });
 });
+
+describe('grounded explanations', () => {
+  const sources = 'Banks reported a higher Net Interest Margin (NIM) this quarter.\nSection: Results';
+  const raw = (extra: Record<string, unknown>) =>
+    JSON.stringify({ kind: 'word', headword: 'NIM', meaning: 'The gap between interest earned and paid.', ...extra });
+
+  it('keeps a quote that appears in the page text, ignoring case, spacing and curly quotes', () => {
+    const e = normalizeExplanation(raw({ fromPage: '“higher  net interest margin (NIM)”', basis: 'page' }), 'NIM', sources);
+    expect(e.fromPage).toBe('higher  net interest margin (NIM)');
+    expect(e.basis).toBe('page');
+  });
+
+  it('drops an invented quote and downgrades "page" to "general"', () => {
+    const e = normalizeExplanation(raw({ fromPage: 'NIM is a measure of bank profitability', basis: 'page' }), 'NIM', sources);
+    expect(e.fromPage).toBeUndefined();
+    expect(e.basis).toBe('general');
+  });
+
+  it('keeps quote marks that belong to the page text', () => {
+    const src = '“Services” means the hosted software described in Schedule A.';
+    const e = normalizeExplanation(raw({ fromPage: '“Services” means the hosted software' }), 'Services', src);
+    expect(e.fromPage).toBe('“Services” means the hosted software');
+  });
+
+  it('drops a quote that is just the selection itself', () => {
+    expect(normalizeExplanation(raw({ fromPage: 'NIM' }), 'NIM', sources).fromPage).toBeUndefined();
+  });
+
+  it('keeps expansion, gloss and confidence; drops an expansion equal to the selection', () => {
+    const e = normalizeExplanation(raw({ expansion: 'Net Interest Margin', gloss: 'शुद्ध ब्याज मार्जिन', confidence: 'low' }), 'NIM', sources);
+    expect(e.expansion).toBe('Net Interest Margin');
+    expect(e.gloss).toBe('शुद्ध ब्याज मार्जिन');
+    expect(e.confidence).toBe('low');
+    expect(normalizeExplanation(raw({ expansion: 'nim', confidence: 'sure' }), 'NIM', sources).expansion).toBeUndefined();
+    expect(normalizeExplanation(raw({ confidence: 'sure' }), 'NIM', sources).confidence).toBeUndefined();
+  });
+
+  it('puts the page definition and first language in the prompt', () => {
+    const { user } = buildExplainPrompt({
+      text: 'NIM',
+      pageDefinition: 'Net Interest Margin (NIM)',
+      level: 'standard',
+      length: 'normal',
+      language: 'English',
+      nativeLanguage: 'Hindi',
+    });
+    expect(user).toContain('DEFINED ON THIS PAGE:\n"""Net Interest Margin (NIM)"""');
+    expect(user).toContain("READER'S FIRST LANGUAGE: Hindi");
+  });
+
+  it('omits the first-language line when it matches the answer language', () => {
+    const { user } = buildExplainPrompt({ text: 'x', level: 'standard', length: 'normal', language: 'Hindi', nativeLanguage: 'hindi' });
+    expect(user).not.toContain('FIRST LANGUAGE');
+  });
+});

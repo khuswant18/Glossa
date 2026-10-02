@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { captureSelection, cleanText, sentenceAround, UI_HOST_ATTR } from '../content/capture';
+import { captureSelection, cleanText, findPageDefinition, looksLikeAcronym, sentenceAround, UI_HOST_ATTR } from '../content/capture';
 
 function selectNode(node: Node, start?: number, end?: number) {
   const range = document.createRange();
@@ -133,5 +133,42 @@ describe('captureSelection', () => {
     const t = document.getElementById('p')!.firstChild as Text;
     selectNode(t, 3, 5);
     expect(captureSelection()!.text).toBe('難し');
+  });
+});
+
+describe('findPageDefinition', () => {
+  it('spots acronyms the page spells out first', () => {
+    const page = 'Banks reported a higher Net Interest Margin (NIM) this quarter. Later, NIM fell again.';
+    expect(findPageDefinition('NIM', page)).toBe('Net Interest Margin (NIM)');
+  });
+  it('skips small words and leading noise', () => {
+    const page = 'Minutes from the meeting of the Federal Open Market Committee (FOMC) were released.';
+    expect(findPageDefinition('FOMC', page)).toBe('Federal Open Market Committee (FOMC)');
+  });
+  it('handles camel-case words and plural acronyms', () => {
+    expect(findPageDefinition('JSON', 'Data is sent as JavaScript Object Notation (JSON).')).toBe('JavaScript Object Notation (JSON)');
+    expect(findPageDefinition('KPIs', 'Track your key performance indicators (KPIs) weekly.')).toBe('key performance indicators (KPI)');
+  });
+  it('spots the acronym-first form', () => {
+    expect(findPageDefinition('SLA', 'Our SLA (the service level agreement) covers uptime.')).toBe('SLA (the service level agreement)');
+  });
+  it('ignores parentheses whose words do not spell the acronym', () => {
+    expect(findPageDefinition('NIM', 'The NIM (see table 2) rose. Revenue (NIM) grew.')).toBeUndefined();
+  });
+  it('finds contract-style definitions', () => {
+    const page = 'In this Agreement, “Confidential Information” means any non-public information disclosed by either party; it excludes…';
+    expect(findPageDefinition('Confidential Information', page)).toBe('“Confidential Information” means any non-public information disclosed by either party');
+    expect(findPageDefinition('Company', 'This lease is made with Acme Holdings Inc. (the "Company") today.')).toBe('This lease is made with Acme Holdings Inc. (the "Company")');
+  });
+  it('returns nothing for long selections or undefined terms', () => {
+    expect(findPageDefinition('a whole sentence that is far too long to be a term', 'x')).toBeUndefined();
+    expect(findPageDefinition('bank', 'The boat reached the bank.')).toBeUndefined();
+  });
+  it('recognises acronym shapes', () => {
+    expect(looksLikeAcronym('NIM')).toBe(true);
+    expect(looksLikeAcronym('SaaS')).toBe(true);
+    expect(looksLikeAcronym('R&D')).toBe(true);
+    expect(looksLikeAcronym('Bank')).toBe(false);
+    expect(looksLikeAcronym('A')).toBe(false);
   });
 });

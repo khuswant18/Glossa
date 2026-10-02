@@ -107,10 +107,99 @@ function isEditableField(el: Element | null): el is HTMLInputElement | HTMLTextA
   return ['text', 'search', 'url', 'email', 'tel', ''].includes(type);
 }
 
-function finish(text: string, sentence: string, context: string): CapturedSelection | null {
+// ---- terms the page defines itself ------------------------------------------
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const SKIPPABLE = new Set(['of', 'and', 'the', 'for', 'in', 'on', 'to', 'a', 'an', '&', 'de', 'du', 'des', 'la', 'le']);
+
+/** Two or more capitals, short, no spaces: NIM, FOMC, SaaS, KPIs, R&D. */
+export function looksLikeAcronym(term: string): boolean {
+  return /^[A-Z][A-Za-z0-9&]{1,9}$/.test(term) && (term.match(/[A-Z]/g) || []).length >= 2;
+}
+
+/** "Net Interest Margin" → true for "NIM": word initials spell the acronym, skipping small words. */
+function initialsSpell(words: string[], acronym: string): number {
+  const letters = acronym.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+  let j = letters.length - 1;
+  let start = -1;
+  for (let i = words.length - 1; i >= 0 && j >= 0; i--) {
+    const w = words[i];
+    // Camel-case words can cover several letters: "JavaScript" → J, S.
+    const caps = (w.match(/[A-Z]/g) || []).join('').toLowerCase();
+    if (caps.length > 1 && caps[0] === w[0].toLowerCase() && j - caps.length + 1 >= 0 && letters.slice(j - caps.length + 1, j + 1) === caps) {
+      j -= caps.length;
+      start = i;
+    } else if (w[0]?.toLowerCase() === letters[j]) {
+      j--;
+      start = i;
+    } else if (SKIPPABLE.has(w.toLowerCase())) {
+      continue;
+    } else {
+      break;
+    }
+  }
+  return j < 0 ? start : -1;
+}
+
+/**
+ * Finds where the page itself spells out `term`, returning the exact snippet:
+ * "Net Interest Margin (NIM)", "NIM (net interest margin)", "“Services” means …", "Acme Inc. (the “Company”)".
+ */
+export function findPageDefinition(term: string, pageText: string): string | undefined {
+  const t = term.trim();
+  if (!t || t.length > 60 || /\n/.test(t) || t.split(/\s+/).length > 5) return undefined;
+  const text = pageText.length > 400_000 ? pageText.slice(0, 400_000) : pageText;
+  const esc = escapeRe(t);
+
+  if (looksLikeAcronym(t)) {
+    const base = /[A-Z]s$/.test(t) ? t.slice(0, -1) : t;
+    const b = escapeRe(base);
+    // Long Form (ACR)
+    const longFirst = new RegExp(`((?:[\\p{L}][\\p{L}\\p{N}'’&]*[\\s-]+){1,12})\\((?:the\\s+)?${b}s?\\)`, 'gu');
+    for (const m of text.matchAll(longFirst)) {
+      const words = m[1].trim().split(/[\s-]+/).filter(Boolean);
+      const start = initialsSpell(words, base);
+      if (start >= 0) return flatText(`${words.slice(start).join(' ')} (${base})`);
+    }
+    // ACR (Long Form)
+    const acrFirst = new RegExp(`(?<![\\p{L}\\p{N}])${b}s?\\s*\\(([^()]{3,90})\\)`, 'gu');
+    for (const m of text.matchAll(acrFirst)) {
+      const words = m[1].trim().split(/[\s-]+/).filter(Boolean);
+      const start = initialsSpell(words, base);
+      if (start >= 0 && words.slice(0, start).every((w) => SKIPPABLE.has(w.toLowerCase()))) {
+        return flatText(`${base} (${m[1].trim()})`);
+      }
+    }
+  }
+
+  // Contract/glossary style: “Term” means …
+  const means = new RegExp(`[“"‘']${esc}[”"’']\\s*(?:means|shall mean|refers to|is defined as|has the meaning)\\b[^.;]{0,240}`, 'iu');
+  const m1 = text.match(means);
+  if (m1) return flatText(m1[0]);
+  // Acme Inc. (the “Company”)
+  const alias = new RegExp(`([^;()\\n]{3,160})\\((?:the\\s+|hereinafter\\s+)?[“"‘']${esc}[”"’']\\)`, 'iu');
+  const m2 = text.match(alias);
+  if (m2) {
+    // Start at the sentence the alias is in, not at earlier sentences ("Inc." is not a sentence end).
+    const cut = [...m2[0].matchAll(/[.!?]\s+(?=[A-Z][a-z])/g)].pop();
+    return flatText(cut ? m2[0].slice(cut.index! + cut[0].length) : m2[0]);
+  }
+  return undefined;
+}
+
+function pageText(): string {
+  try {
+    return document.body?.innerText || document.body?.textContent || '';
+  } catch {
+    return '';
+  }
+}
+
+function finish(text: string, sentence: string, context: string, withDefinition = false): CapturedSelection | null {
   const clean = cleanText(text);
   if (!clean || !/[\p{L}\p{N}\p{S}]/u.test(clean)) return null;
   const truncated = clean.length > LIMITS.maxSelectionChars;
+  const pageDefinition = withDefinition ? findPageDefinition(clean, pageText()) : undefined;
   return {
     text: truncated ? clean.slice(0, LIMITS.maxSelectionChars) : clean,
     sentence: sentence.length > 600 ? clipAround(sentence, flatText(clean), 600) : sentence,
@@ -118,6 +207,7 @@ function finish(text: string, sentence: string, context: string): CapturedSelect
     pageTitle: document.title.slice(0, 200),
     pageUrl: location.href,
     truncated,
+    ...(pageDefinition ? { pageDefinition } : {}),
   };
 }
 
@@ -179,7 +269,7 @@ export function captureSelection(): CapturedSelection | null {
     .filter(Boolean)
     .join('\n');
 
-  return finish(selected, sentence, context);
+  return finish(selected, sentence, context, true);
 }
 
 /** Viewport rect of the current selection's end, for positioning the floating button. */
