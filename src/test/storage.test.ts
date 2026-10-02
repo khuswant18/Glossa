@@ -10,6 +10,7 @@ import {
   upsertLookup,
 } from '../shared/storage';
 import type { Lookup } from '../shared/types';
+import { LIMITS } from '../shared/brand';
 
 const make = (id: string, saved = false): Lookup => ({
   id,
@@ -69,12 +70,19 @@ describe('history', () => {
   });
 
   it('caps history size but never evicts saved items', async () => {
-    await clearHistory(false);
-    await upsertLookup(make('keep', true));
-    for (let i = 0; i < 510; i++) await upsertLookup(make(`x${i}`));
-    const h = await getHistory();
-    expect(h.length).toBe(500);
-    expect(h.some((l) => l.id === 'keep')).toBe(true);
+    const limits = LIMITS as { historyItems: number };
+    const real = limits.historyItems;
+    limits.historyItems = 50; // the real cap is large; a small one keeps the test fast
+    try {
+      await clearHistory(false);
+      await upsertLookup(make('keep', true));
+      for (let i = 0; i < 60; i++) await upsertLookup(make(`x${i}`));
+      const h = await getHistory();
+      expect(h.length).toBe(50);
+      expect(h.some((l) => l.id === 'keep')).toBe(true);
+    } finally {
+      limits.historyItems = real;
+    }
   });
 });
 

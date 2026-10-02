@@ -5,6 +5,7 @@
 
 import type { Lookup, PanelNotice, PendingRequest, Quota, Settings } from './types';
 import { LIMITS } from './brand';
+import { indexItem, lexiconEligible, mergeEntry, termKey, type LexiconEntry, type TermIndexItem } from './lexicon';
 
 export const KEYS = {
   settings: 'glossa.settings',
@@ -15,6 +16,10 @@ export const KEYS = {
   stats: 'glossa.stats',
   pending: 'glossa.pending',
   notice: 'glossa.notice',
+  /** Compact list of every word-list term (read by content scripts). */
+  terms: 'glossa.terms',
+  /** Prefix for one storage key per word-list entry, so saving one word never rewrites the whole list. */
+  lexPrefix: 'glossa.lex:',
 } as const;
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -26,14 +31,17 @@ export const DEFAULT_SETTINGS: Settings = {
   level: 'standard',
   length: 'normal',
   language: 'English',
+  nativeLanguage: '',
   theme: 'system',
   textScale: 1,
   showChip: true,
+  showSeen: true,
   includeContext: true,
   saveHistory: true,
   paused: false,
   disabledSites: [],
   serverUrl: '',
+  shareStats: true,
 };
 
 const hasChrome = () => typeof chrome !== 'undefined' && !!chrome.storage?.local;
@@ -74,6 +82,36 @@ async function localSet(key: string, value: unknown): Promise<void> {
     return;
   }
   await chrome.storage.local.set({ [key]: value });
+}
+
+async function localGetMany(keys: string[]): Promise<Record<string, unknown>> {
+  if (!keys.length) return {};
+  if (!hasChrome()) return Object.fromEntries(keys.map((k) => [k, webGet(k)]));
+  return chrome.storage.local.get(keys);
+}
+
+async function localSetMany(items: Record<string, unknown>): Promise<void> {
+  if (!hasChrome()) {
+    for (const [k, v] of Object.entries(items)) webSet(k, v);
+    return;
+  }
+  await chrome.storage.local.set(items);
+}
+
+async function localRemove(keys: string[]): Promise<void> {
+  if (!keys.length) return;
+  if (!hasChrome()) {
+    for (const k of keys) {
+      delete memory[k];
+      try {
+        localStorage.removeItem(k);
+      } catch {
+        // blocked storage
+      }
+    }
+    return;
+  }
+  await chrome.storage.local.remove(keys);
 }
 
 async function sessionGet<T>(key: string): Promise<T | undefined> {
@@ -153,6 +191,88 @@ export async function deleteLookup(id: string): Promise<Lookup[]> {
 
 export async function clearHistory(keepSaved: boolean): Promise<Lookup[]> {
   return writeHistory(keepSaved ? (await getHistory()).filter((l) => l.saved) : []);
+}
+
+// ---- Word list (lexicon) ----------------------------------------------------
+
+const lexKey = (k: string) => `${KEYS.lexPrefix}${k}`;
+
+/** Builds the word list from existing history the first time it's needed. */
+async function ensureLexicon(): Promise<TermIndexItem[]> {
+  const index = await localGet<TermIndexItem[]>(KEYS.terms);
+  if (Array.isArray(index)) {
+    // Lists saved before the index carried "where you met it" get it filled in once.
+    if (index.length && index[0].f === undefined) {
+      const data = await localGetMany(index.map((i) => lexKey(i.k)));
+      const upgraded = index.map((i) => {
+        const e = data[lexKey(i.k)] as LexiconEntry | undefined;
+        return e ? indexItem(e) : i;
+      });
+      await localSetMany({ [KEYS.terms]: upgraded });
+      return upgraded;
+    }
+    return index;
+  }
+  const entries = new Map<string, LexiconEntry>();
+  for (const l of [...(await getHistory())].reverse()) {
+    if (!lexiconEligible(l)) continue;
+    const k = termKey(l.selection.text);
+    entries.set(k, mergeEntry(entries.get(k), l));
+  }
+  const list = [...entries.values()].sort((a, b) => b.lastSeen - a.lastSeen);
+  await localSetMany({
+    ...Object.fromEntries(list.map((e) => [lexKey(e.key), e])),
+    [KEYS.terms]: list.map(indexItem),
+  });
+  return list.map(indexItem);
+}
+
+export async function getTermIndex(): Promise<TermIndexItem[]> {
+  return ensureLexicon();
+}
+
+export async function getLexicon(): Promise<LexiconEntry[]> {
+  const index = await ensureLexicon();
+  const data = await localGetMany(index.map((i) => lexKey(i.k)));
+  return index.map((i) => data[lexKey(i.k)] as LexiconEntry | undefined).filter((e): e is LexiconEntry => !!e);
+}
+
+export async function isKnownTerm(text: string): Promise<boolean> {
+  const k = termKey(text);
+  return (await ensureLexicon()).some((i) => i.k === k);
+}
+
+/** Adds a lookup to the word list (or updates its entry). Returns the entry, or null if not eligible. */
+export async function recordLookup(l: Lookup): Promise<LexiconEntry | null> {
+  if (!lexiconEligible(l)) return null;
+  const index = await ensureLexicon();
+  const k = termKey(l.selection.text);
+  const existing = (await localGet<LexiconEntry>(lexKey(k))) || undefined;
+  const entry = mergeEntry(existing, l);
+  const next = [indexItem(entry), ...index.filter((i) => i.k !== k)].slice(0, LIMITS.lexiconItems);
+  const dropped = index.filter((i) => i.k !== k && !next.some((n) => n.k === i.k)).map((i) => lexKey(i.k));
+  await localSetMany({ [lexKey(k)]: entry, [KEYS.terms]: next });
+  await localRemove(dropped);
+  return entry;
+}
+
+/** Saves review progress for an entry that is already in the list. */
+export async function saveLexiconEntry(entry: LexiconEntry): Promise<void> {
+  const index = await ensureLexicon();
+  if (!index.some((i) => i.k === entry.key)) return;
+  await localSetMany({ [lexKey(entry.key)]: entry });
+}
+
+export async function deleteLexiconEntry(key: string): Promise<void> {
+  const index = await ensureLexicon();
+  await localSetMany({ [KEYS.terms]: index.filter((i) => i.k !== key) });
+  await localRemove([lexKey(key)]);
+}
+
+export async function clearLexicon(): Promise<void> {
+  const index = await ensureLexicon();
+  await localSetMany({ [KEYS.terms]: [] });
+  await localRemove(index.map((i) => lexKey(i.k)));
 }
 
 // ---- Response cache (identical selection + context + options) --------------
