@@ -1,5 +1,5 @@
 {
-  "_readme": "Posting queue. Each run of scripts/social-publish.mjs posts the oldest post whose date (UTC) has arrived and that isn't on Instagram yet. Render images with `npm run social:render`, then commit and deploy so they're live at /social/... before the date. Text in [[double brackets]] is highlighted.",
+  "_readme": "Posting queue. Posts go out at their `at` time (UTC; 01:30Z = 07:00 IST, 13:30Z = 19:00 IST). A run posts the oldest due post that isn't on Instagram yet. Render with `npm run social:render`, commit and deploy before the time. Text in [[double brackets]] is highlighted. Never change the first caption line of a posted post: it's how duplicates are detected.",
   "hashtags": {
     "core": [
       "#glossa",
@@ -63,7 +63,7 @@
     },
     {
       "id": "02-finance-terms",
-      "date": "2026-10-06",
+      "at": "2026-10-04T01:30:00Z",
       "slides": [
         {
           "t": "cover",
@@ -111,7 +111,7 @@
           "title": "Any word. [[In context.]]"
         }
       ],
-      "caption": "Finance writing is full of words nobody explains. Here are 5 you'll meet this week.\n\nWith Glossa you just select the word on the page and get the meaning that fits that exact sentence. Spelled-out acronyms on the page are picked up automatically.\n\nSave this ✨ and follow for more decoded jargon.",
+      "caption": "Finance news is written for people who already know finance. 📉\n\n5 terms you'll meet this week, explained in one line each:\n→ priced in\n→ basis point\n→ inverted yield curve\n→ NIM\n→ forward guidance\n\nSave this for the next markets article. Next time, select the word and press ⌥E: Glossa explains it in that exact sentence.",
       "tags": [
         "core",
         "work"
@@ -119,7 +119,7 @@
     },
     {
       "id": "03-memory",
-      "date": "2026-10-07",
+      "at": "2026-10-04T13:30:00Z",
       "slides": [
         {
           "t": "cover",
@@ -148,15 +148,113 @@
           "title": "The explainer that [[remembers.]]"
         }
       ],
-      "caption": "You've looked up the same word three times this month. We all have.\n\nGlossa keeps every word you look up, and when it shows up again on any website, it's quietly underlined. Hover and it tells you what it means, and that you met it 3 weeks ago in The Economist.\n\nYour word list stays on your device. Free, link in bio.",
+      "caption": "You've looked up the same word 3 times this month. Be honest. 😅\n\nGlossa remembers every word you look up. When it shows up again, on any website, it's quietly underlined. Hover, and it tells you what it means AND where you met it before.\n\nYour word list stays on your device. Free, link in bio.",
       "tags": [
         "core",
         "learn"
       ]
     },
     {
+      "id": "27-misused-words",
+      "at": "2026-10-05T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Careful",
+          "title": "5 words that don't mean what [[you think.]]",
+          "sub": "Swipe. Number 1 surprises everyone."
+        },
+        {
+          "t": "term",
+          "word": "nonplussed",
+          "tag": "adjective",
+          "sentence": "She was [[nonplussed]] by the question.",
+          "meaning": "Traditionally: so confused you don't know how to react. Not “calm”.",
+          "sentenceLabel": "In a sentence"
+        },
+        {
+          "t": "term",
+          "word": "bemused",
+          "tag": "adjective",
+          "sentence": "He looked [[bemused]] by the rules.",
+          "meaning": "Puzzled or confused. Not “amused”.",
+          "sentenceLabel": "In a sentence"
+        },
+        {
+          "t": "term",
+          "word": "disinterested",
+          "tag": "adjective",
+          "sentence": "We need a [[disinterested]] judge.",
+          "meaning": "Impartial, with nothing to gain. Not “uninterested”.",
+          "sentenceLabel": "In a sentence"
+        },
+        {
+          "t": "term",
+          "word": "enormity",
+          "tag": "noun",
+          "sentence": "The [[enormity]] of the crime shocked everyone.",
+          "meaning": "Strictly: great wickedness. Often used to mean hugeness.",
+          "sentenceLabel": "In a sentence"
+        },
+        {
+          "t": "term",
+          "word": "travesty",
+          "tag": "noun",
+          "sentence": "The trial was a [[travesty]] of justice.",
+          "meaning": "A ridiculous, distorted version of something. Not just “a tragedy”.",
+          "sentenceLabel": "In a sentence"
+        },
+        {
+          "t": "cta",
+          "title": "Know what words [[really]] mean."
+        }
+      ],
+      "caption": "Most people use #1 wrong. Did you? 🤯\n\nNonplussed. Bemused. Disinterested. Enormity. Travesty.\nSwipe for what they actually mean →\n\nComment the one that surprised you most 👇",
+      "tags": [
+        "core",
+        "learn"
+      ]
+    },
+    {
+      "id": "05-grounded",
+      "at": "2026-10-05T13:30:00Z",
+      "slides": [
+        {
+          "t": "feature",
+          "kicker": "Trust",
+          "title": "AI answers that [[show their source.]]",
+          "body": "Glossa quotes the line on the page it relied on, and checks the quote really is on the page.",
+          "mock": "answer",
+          "word": "NIM",
+          "tag": "acronym",
+          "meaning": "Net interest margin: what a bank earns on loans minus what it pays on deposits.",
+          "quote": "Lenders reported a wider [[net interest margin (NIM)]] this quarter.",
+          "quoteLabel": "Defined on this page"
+        },
+        {
+          "t": "list",
+          "kicker": "Why it matters",
+          "title": "No guessing. [[No made-up quotes.]]",
+          "items": [
+            "If the page defines a term, Glossa uses the page's definition",
+            "Acronyms spelled out on the page are found automatically",
+            "Click “Show on page” to jump to the exact sentence",
+            "Unsure? It says so, instead of sounding confident"
+          ]
+        },
+        {
+          "t": "cta"
+        }
+      ],
+      "caption": "Most AI answers sound confident. Few show their source.\n\nGlossa reads the page you're on, uses its own definitions and spelled-out acronyms, and quotes the exact line. One click on “Show on page” jumps to it.\n\nNo made-up quotes. If it isn't sure, it says so.\nTry it free, link in bio.",
+      "tags": [
+        "core",
+        "work"
+      ]
+    },
+    {
       "id": "04-startup-terms",
-      "date": "2026-10-08",
+      "at": "2026-10-06T01:30:00Z",
       "slides": [
         {
           "t": "cover",
@@ -208,82 +306,136 @@
           "t": "cta"
         }
       ],
-      "caption": "Runway, burn, ARR. If startup posts sound like another language, this one's for you.\n\nSave it, send it to the friend who just joined a startup, and try Glossa next time a word stops you mid-scroll.",
+      "caption": "If startup Twitter sounds like a foreign language, this is your dictionary. 🚀\n\nRunway. Burn rate. ARR. Cap table. Down round.\nSwipe for plain-English meanings →\n\nSend this to the friend who just joined a startup 👀",
       "tags": [
         "core",
         "work"
       ]
     },
     {
-      "id": "05-grounded",
-      "date": "2026-10-09",
+      "id": "20-ways-to-explain",
+      "at": "2026-10-06T13:30:00Z",
+      "slides": [
+        {
+          "t": "list",
+          "kicker": "Glossa",
+          "title": "4 ways to explain [[anything.]]",
+          "items": [
+            "Select text and press ⌥E (Alt+E on Windows)",
+            "Click the small Explain button next to your selection",
+            "Right-click and choose “Explain”",
+            "Type any word into the side panel"
+          ]
+        },
+        {
+          "t": "feature",
+          "kicker": "Then",
+          "title": "Simpler, deeper, examples, [[your question.]]",
+          "body": "Every answer opens in a side panel, so the page you're reading never moves."
+        },
+        {
+          "t": "cta"
+        }
+      ],
+      "caption": "Your new reading shortcut: ⌥E. ⌨️\n\nSelect anything, press one key, and the meaning opens next to the page. No new tab, no copy-paste, no losing your place.\n\nWhat would you explain first? 👇",
+      "tags": [
+        "core",
+        "learn"
+      ]
+    },
+    {
+      "id": "16-corporate-jargon",
+      "at": "2026-10-07T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Decoded",
+          "title": "Corporate speak, [[translated.]]",
+          "sub": "What your manager actually means."
+        },
+        {
+          "t": "term",
+          "word": "circle back",
+          "tag": "phrase",
+          "sentence": "Let's [[circle back]] on this next week.",
+          "meaning": "Talk about it again later. Often: not now.",
+          "sentenceLabel": "In the meeting"
+        },
+        {
+          "t": "term",
+          "word": "bandwidth",
+          "tag": "noun",
+          "sentence": "I don't have the [[bandwidth]] for that.",
+          "meaning": "Time or energy to take something on.",
+          "sentenceLabel": "In the meeting"
+        },
+        {
+          "t": "term",
+          "word": "low-hanging fruit",
+          "tag": "phrase",
+          "sentence": "Start with the [[low-hanging fruit]].",
+          "meaning": "The easiest wins that need the least effort.",
+          "sentenceLabel": "In the meeting"
+        },
+        {
+          "t": "term",
+          "word": "move the needle",
+          "tag": "phrase",
+          "sentence": "Will this actually [[move the needle]]?",
+          "meaning": "Make a noticeable difference to results.",
+          "sentenceLabel": "In the meeting"
+        },
+        {
+          "t": "term",
+          "word": "take this offline",
+          "tag": "phrase",
+          "sentence": "Let's [[take this offline]].",
+          "meaning": "Discuss it later, privately, not in this meeting.",
+          "sentenceLabel": "In the meeting"
+        },
+        {
+          "t": "cta",
+          "title": "Decode work-speak [[instantly.]]"
+        }
+      ],
+      "caption": "“Let's circle back when we have more bandwidth.” 🫠\n\nIf office language confuses you, you're not alone: most people decode jargon on their own and just nod along.\n\nSwipe for plain English, then send this to your work bestie.",
+      "tags": [
+        "core",
+        "work"
+      ]
+    },
+    {
+      "id": "08-pdf-reader",
+      "at": "2026-10-07T13:30:00Z",
       "slides": [
         {
           "t": "feature",
-          "kicker": "Trust",
-          "title": "AI answers that [[show their source.]]",
-          "body": "Glossa quotes the line on the page it relied on, and checks the quote really is on the page.",
+          "kicker": "PDFs",
+          "title": "Chrome's PDF viewer hides your selection. [[Ours doesn't.]]",
+          "body": "Open any PDF in the Glossa reader, select text and press ⌥E, just like on a web page. Papers, reports, letters, contracts.",
           "mock": "answer",
-          "word": "NIM",
-          "tag": "acronym",
-          "meaning": "Net interest margin: what a bank earns on loans minus what it pays on deposits.",
-          "quote": "Lenders reported a wider [[net interest margin (NIM)]] this quarter.",
-          "quoteLabel": "Defined on this page"
+          "word": "covenant",
+          "tag": "noun",
+          "meaning": "A promise in a loan agreement, like keeping debt below a set level.",
+          "quote": "Analysts expect NIM to narrow, and the [[covenant]] was breached.",
+          "quoteLabel": "From the PDF"
         },
         {
           "t": "list",
-          "kicker": "Why it matters",
-          "title": "No guessing. [[No made-up quotes.]]",
+          "kicker": "Glossa reader",
+          "title": "Built for [[papers and reports.]]",
           "items": [
-            "If the page defines a term, Glossa uses the page's definition",
-            "Acronyms spelled out on the page are found automatically",
-            "Click “Show on page” to jump to the exact sentence",
-            "Unsure? It says so, instead of sounding confident"
+            "Open a PDF link, or one from your computer",
+            "Files are read in your browser, never uploaded",
+            "Words you know are underlined in PDFs too",
+            "Every lookup joins your word list"
           ]
         },
         {
           "t": "cta"
         }
       ],
-      "caption": "Most AI tools explain a word with total confidence and zero proof.\n\nGlossa reads the page you're on, uses its own definitions and spelled-out acronyms, and shows you the exact line. One click jumps to it on the page.\n\nTry it free, link in bio.",
-      "tags": [
-        "core",
-        "work"
-      ]
-    },
-    {
-      "id": "06-second-language",
-      "date": "2026-10-10",
-      "slides": [
-        {
-          "t": "list",
-          "kicker": "Reading in your second language",
-          "title": "4 habits that make [[hard articles easy.]]",
-          "items": [
-            "Look up the phrase, not the single word",
-            "Read the sentence the word is in, not the dictionary list",
-            "Revisit words a day later, then a week later",
-            "Get a one-line meaning in your first language"
-          ]
-        },
-        {
-          "t": "feature",
-          "kicker": "Glossa does all four",
-          "title": "Explained in English, [[plus a line in yours.]]",
-          "body": "Set your first language once. Every answer adds a one-line meaning in it, and Review brings words back before you forget them.",
-          "mock": "answer",
-          "word": "stubbornly",
-          "tag": "adverb",
-          "meaning": "In a way that refuses to change, even when you'd expect it to.",
-          "quote": "The yield curve stayed [[stubbornly]] inverted.",
-          "quoteLabel": "From the page"
-        },
-        {
-          "t": "cta",
-          "sub": "20 languages, your level, your first language. Free Chrome extension."
-        }
-      ],
-      "caption": "Reading native articles is the fastest way to level up, and the most tiring.\n\nThese 4 habits make it easier. Glossa builds all of them in: phrase-level meaning in context, a line in your first language, and quick reviews a day and a week later.\n\nWhich language are you learning? 👇",
+      "caption": "Try selecting a word in a PDF and asking an AI extension about it. Chrome won't let it. 😤\n\nSo we built our own PDF reader. Open the file, select a word, press ⌥E. Works on papers, reports, letters and contracts. Your files never leave your computer.\n\nStudents, save this 📚",
       "tags": [
         "core",
         "learn"
@@ -291,7 +443,7 @@
     },
     {
       "id": "07-legal-terms",
-      "date": "2026-10-11",
+      "at": "2026-10-08T01:30:00Z",
       "slides": [
         {
           "t": "cover",
@@ -344,52 +496,98 @@
           "title": "Read the fine print. [[Understand it.]]"
         }
       ],
-      "caption": "Leases, job offers, terms of service: the words are always the same, and almost nobody explains them.\n\nSave this, and next time select the clause and let Glossa explain it in plain English. If the contract defines a word itself, Glossa uses that definition.\n\nNot legal advice, just less confusion.",
+      "caption": "You've signed contracts with these words in them. Did you know what they meant? 📄\n\nIndemnify. Force majeure. Severability. Governing law.\nSwipe for plain English →\n\nNot legal advice. Just fewer surprises. Save this before your next lease or job offer.",
       "tags": [
         "core",
         "work"
       ]
     },
     {
-      "id": "08-pdf-reader",
-      "date": "2026-10-12",
+      "id": "22-signs-you-read-online",
+      "at": "2026-10-08T13:30:00Z",
       "slides": [
         {
-          "t": "feature",
-          "kicker": "PDFs",
-          "title": "Chrome's PDF viewer hides your selection. [[Ours doesn't.]]",
-          "body": "Open any PDF in the Glossa reader, select text and press ⌥E, just like on a web page. Papers, reports, letters, contracts.",
-          "mock": "answer",
-          "word": "covenant",
-          "tag": "noun",
-          "meaning": "A promise in a loan agreement, like keeping debt below a set level.",
-          "quote": "Analysts expect NIM to narrow, and the [[covenant]] was breached.",
-          "quoteLabel": "From the PDF"
-        },
-        {
           "t": "list",
-          "kicker": "Glossa reader",
-          "title": "Built for [[papers and reports.]]",
+          "kicker": "Be honest",
+          "title": "Signs you read [[too much]] on the internet",
           "items": [
-            "Open a PDF link, or one from your computer",
-            "Files are read in your browser, never uploaded",
-            "Words you know are underlined in PDFs too",
-            "Every lookup joins your word list"
+            "You have 30+ tabs open right now",
+            "You googled “what does ___ mean” 3 times this week",
+            "You nod along to acronyms in meetings",
+            "You lose your place every time you look something up"
           ]
         },
         {
-          "t": "cta"
+          "t": "cta",
+          "title": "There's a [[fix]] for the last two.",
+          "sub": "Glossa explains words right on the page and remembers them for next time."
         }
       ],
-      "caption": "Ever tried to select a word in a PDF and ask an extension about it? Chrome's viewer doesn't let them read it.\n\nGlossa has its own PDF reader. Open the file, select, press ⌥E. Your files stay on your computer.\n\nPerfect for research papers 📄 Link in bio.",
+      "caption": "If you got all 4, we need to talk. 😂\n\nTag the friend with 47 tabs open 👇",
       "tags": [
         "core",
         "learn"
       ]
     },
     {
+      "id": "17-ai-words",
+      "at": "2026-10-09T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Decoded",
+          "title": "AI words everyone uses, [[explained simply.]]",
+          "sub": "No computer science degree needed."
+        },
+        {
+          "t": "term",
+          "word": "LLM",
+          "tag": "acronym",
+          "sentence": "The app runs on an [[LLM]].",
+          "meaning": "Large language model: an AI trained on huge amounts of text to predict and write words."
+        },
+        {
+          "t": "term",
+          "word": "hallucination",
+          "tag": "noun",
+          "sentence": "The chatbot's answer was a [[hallucination]].",
+          "meaning": "When an AI states something false as if it were true."
+        },
+        {
+          "t": "term",
+          "word": "token",
+          "tag": "noun",
+          "sentence": "The model has a limit of 8,000 [[tokens]].",
+          "meaning": "A small chunk of text, often part of a word, that AI models read and write."
+        },
+        {
+          "t": "term",
+          "word": "prompt",
+          "tag": "noun",
+          "sentence": "Write a clearer [[prompt]].",
+          "meaning": "The instruction or question you give an AI."
+        },
+        {
+          "t": "term",
+          "word": "fine-tuning",
+          "tag": "noun",
+          "sentence": "They improved it with [[fine-tuning]].",
+          "meaning": "Training an existing AI further on specific examples to specialise it."
+        },
+        {
+          "t": "cta",
+          "sub": "And Glossa shows the line on the page it used. No hallucinated quotes."
+        }
+      ],
+      "caption": "Everyone talks about AI. Few people can explain these 5 words. 🤖\n\nLLM. Hallucination. Token. Prompt. Fine-tuning.\nSwipe for one-line explanations →\n\nSave it, and next time you read about AI, select any word and press ⌥E.",
+      "tags": [
+        "core",
+        "work"
+      ]
+    },
+    {
       "id": "09-weekly-recap",
-      "date": "2026-10-13",
+      "at": "2026-10-09T13:30:00Z",
       "slides": [
         {
           "t": "feature",
@@ -431,7 +629,71 @@
           "t": "cta"
         }
       ],
-      "caption": "Reading a lot feels productive. Glossa shows you if it is.\n\nYour weekly recap counts new words, lookups and words you actually know. Known means recalled 3 times in a row, not just seen once.\n\nPost your recap and tag us 👀",
+      "caption": "Reading a lot feels productive. Here's how to know if it actually is. 📊\n\nEvery week Glossa shows your new words, lookups, days reading, and words you truly know: recalled 3 times in a row, not just seen once.\n\nPost your weekly recap and tag us. Let's see who reads the most 👇",
+      "tags": [
+        "core",
+        "learn"
+      ]
+    },
+    {
+      "id": "06-second-language",
+      "at": "2026-10-10T01:30:00Z",
+      "slides": [
+        {
+          "t": "list",
+          "kicker": "Reading in your second language",
+          "title": "4 habits that make [[hard articles easy.]]",
+          "items": [
+            "Look up the phrase, not the single word",
+            "Read the sentence the word is in, not the dictionary list",
+            "Revisit words a day later, then a week later",
+            "Get a one-line meaning in your first language"
+          ]
+        },
+        {
+          "t": "feature",
+          "kicker": "Glossa does all four",
+          "title": "Explained in English, [[plus a line in yours.]]",
+          "body": "Set your first language once. Every answer adds a one-line meaning in it, and Review brings words back before you forget them.",
+          "mock": "answer",
+          "word": "stubbornly",
+          "tag": "adverb",
+          "meaning": "In a way that refuses to change, even when you'd expect it to.",
+          "quote": "The yield curve stayed [[stubbornly]] inverted.",
+          "quoteLabel": "From the page"
+        },
+        {
+          "t": "cta",
+          "sub": "20 languages, your level, your first language. Free Chrome extension."
+        }
+      ],
+      "caption": "Reading in your second language is exhausting. These 4 habits make it easier. 🌍\n\n1. Look up phrases, not single words\n2. Read the meaning in its sentence\n3. Revisit words a day later, then a week later\n4. Get a one-line meaning in your first language\n\nGlossa does all four for you. Which language are you learning? 👇",
+      "tags": [
+        "core",
+        "learn"
+      ]
+    },
+    {
+      "id": "21-follow-ups",
+      "at": "2026-10-10T13:30:00Z",
+      "slides": [
+        {
+          "t": "list",
+          "kicker": "Follow-ups",
+          "title": "Didn't get it? [[Ask again.]]",
+          "items": [
+            "Simpler: explained like you're new to it",
+            "Go deeper: how and why it works",
+            "Examples: see it used in real sentences",
+            "Translate: in any of 20 languages",
+            "Ask: your own question about the text"
+          ]
+        },
+        {
+          "t": "cta"
+        }
+      ],
+      "caption": "The first explanation doesn't always click. That's normal. 💡\n\nWith Glossa, one tap makes it simpler, goes deeper, shows examples, translates it, or answers your own question about the text.\n\nSave this for your next confusing article.",
       "tags": [
         "core",
         "learn"
@@ -439,7 +701,7 @@
     },
     {
       "id": "10-tech-terms",
-      "date": "2026-10-14",
+      "at": "2026-10-11T01:30:00Z",
       "slides": [
         {
           "t": "cover",
@@ -492,7 +754,7 @@
           "sub": "Works on docs, code, GitHub and Slack in the browser."
         }
       ],
-      "caption": "Your first standup at a tech company, decoded.\n\nSave this for later, and next time a word flies past in a doc, select it and press ⌥E.",
+      "caption": "Your first week in tech, decoded. 💻\n\nIdempotent. Latency. Race condition. Technical debt. Thundering herd.\nSwipe for meanings anyone can understand →\n\nPMs, designers, new devs: save this before your next standup.",
       "tags": [
         "core",
         "work"
@@ -500,7 +762,7 @@
     },
     {
       "id": "11-private",
-      "date": "2026-10-15",
+      "at": "2026-10-11T13:30:00Z",
       "slides": [
         {
           "t": "list",
@@ -518,7 +780,149 @@
           "title": "Private by [[design.]]"
         }
       ],
-      "caption": "Pasting work documents into a chatbot to understand one word? Not great.\n\nGlossa sends only what you select, plus a little nearby text, and you can turn that off. Your word list never leaves your browser. On supported computers you can even run it on the AI built into Chrome.\n\nFree, link in bio.",
+      "caption": "Pasting work documents into a chatbot to understand one word? Your company might not love that. 🔒\n\nGlossa sends only what you select, plus a little nearby text you can switch off. Your word list never leaves your browser. On supported computers it can even run on the AI built into Chrome: nothing leaves at all.\n\nFree, link in bio.",
+      "tags": [
+        "core",
+        "work"
+      ]
+    },
+    {
+      "id": "23-idioms",
+      "at": "2026-10-12T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "English idioms",
+          "title": "5 idioms in every [[news headline.]]",
+          "sub": "For anyone reading English as a second language."
+        },
+        {
+          "t": "term",
+          "word": "bite the bullet",
+          "tag": "idiom",
+          "sentence": "Investors may have to [[bite the bullet]].",
+          "meaning": "Accept something unpleasant because you have to.",
+          "sentenceLabel": "In the headline"
+        },
+        {
+          "t": "term",
+          "word": "on the fence",
+          "tag": "idiom",
+          "sentence": "Voters are still [[on the fence]].",
+          "meaning": "Undecided between two options.",
+          "sentenceLabel": "In the headline"
+        },
+        {
+          "t": "term",
+          "word": "the elephant in the room",
+          "tag": "idiom",
+          "sentence": "Debt is [[the elephant in the room]].",
+          "meaning": "An obvious problem nobody wants to talk about.",
+          "sentenceLabel": "In the headline"
+        },
+        {
+          "t": "term",
+          "word": "a perfect storm",
+          "tag": "idiom",
+          "sentence": "Rising costs created [[a perfect storm]].",
+          "meaning": "Several bad things happening at once and making each other worse.",
+          "sentenceLabel": "In the headline"
+        },
+        {
+          "t": "term",
+          "word": "back to square one",
+          "tag": "idiom",
+          "sentence": "Talks are [[back to square one]].",
+          "meaning": "Back at the start, after progress was lost.",
+          "sentenceLabel": "In the headline"
+        },
+        {
+          "t": "cta",
+          "sub": "Glossa explains idioms as phrases, in the sentence you found them."
+        }
+      ],
+      "caption": "Idioms are why “I know every word but don't get the sentence” happens. 🧩\n\nSwipe for 5 idioms you'll see in the news this week →\n\nWhich idiom confused you the most when you were learning English? 👇",
+      "tags": [
+        "core",
+        "learn"
+      ]
+    },
+    {
+      "id": "25-word-list",
+      "at": "2026-10-12T13:30:00Z",
+      "slides": [
+        {
+          "t": "list",
+          "kicker": "Your words",
+          "title": "Every word you look up, [[in one place.]]",
+          "items": [
+            "Saved with the exact sentence and page",
+            "See which words you keep looking up",
+            "Search, sort, or filter by website",
+            "Tap a word to explain it again"
+          ]
+        },
+        {
+          "t": "cta",
+          "title": "Your personal [[dictionary.]]"
+        }
+      ],
+      "caption": "Imagine a dictionary made only of the words YOU didn't know. 📖\n\nThat's “Your words” in Glossa: every lookup, with the sentence and page where you met it. It's private and stays on your device.\n\nWould you use it? 👇",
+      "tags": [
+        "core",
+        "learn"
+      ]
+    },
+    {
+      "id": "24-economics-terms",
+      "at": "2026-10-13T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Decoded",
+          "title": "Economics words from [[every news app.]]",
+          "sub": "Understand the headlines in 60 seconds."
+        },
+        {
+          "t": "term",
+          "word": "inflation",
+          "tag": "noun",
+          "sentence": "[[Inflation]] hit 4% last month.",
+          "meaning": "Prices rising over time, so the same money buys less."
+        },
+        {
+          "t": "term",
+          "word": "recession",
+          "tag": "noun",
+          "sentence": "Economists fear a [[recession]].",
+          "meaning": "A significant fall in economic activity, often two quarters of shrinking GDP."
+        },
+        {
+          "t": "term",
+          "word": "stagflation",
+          "tag": "noun",
+          "sentence": "The worry is [[stagflation]].",
+          "meaning": "High inflation and weak growth at the same time."
+        },
+        {
+          "t": "term",
+          "word": "GDP",
+          "tag": "acronym",
+          "sentence": "[[GDP]] grew 1.2% this quarter.",
+          "meaning": "Gross domestic product: the total value of everything a country produces."
+        },
+        {
+          "t": "term",
+          "word": "quantitative easing",
+          "tag": "phrase",
+          "sentence": "The bank restarted [[quantitative easing]].",
+          "meaning": "A central bank buying bonds to push money into the economy."
+        },
+        {
+          "t": "cta"
+        }
+      ],
+      "caption": "The economy explained in 5 words. 🌐\n\nInflation. Recession. Stagflation. GDP. Quantitative easing.\nSwipe →\n\nSave this, and send it to someone who pretends to understand the news. 😉",
       "tags": [
         "core",
         "work"
@@ -526,7 +930,7 @@
     },
     {
       "id": "12-export",
-      "date": "2026-10-16",
+      "at": "2026-10-13T13:30:00Z",
       "slides": [
         {
           "t": "feature",
@@ -538,7 +942,7 @@
           "t": "cta"
         }
       ],
-      "caption": "Sentence mining without the setup.\n\nEvery word you look up in Glossa is saved with the sentence and page. Export to Anki in one click and the card front shows the word in its real sentence.\n\nAnki users, would you try this? 👇",
+      "caption": "Anki users: sentence mining without the setup. 🧠\n\nEvery word you look up in Glossa is saved with the real sentence and page. One click exports it as an Anki deck, Markdown for Obsidian, CSV or JSON.\n\nWould you use this? Tell us below 👇",
       "tags": [
         "core",
         "learn"
@@ -546,7 +950,7 @@
     },
     {
       "id": "13-paper-terms",
-      "date": "2026-10-17",
+      "at": "2026-10-14T01:30:00Z",
       "slides": [
         {
           "t": "cover",
@@ -599,15 +1003,275 @@
           "sub": "Open the PDF in the Glossa reader and select any term."
         }
       ],
-      "caption": "Papers are hard enough without the vocabulary.\n\nSave these 5, and use Glossa's PDF reader to explain any term right inside the paper, in your language, at your level.\n\nTag a friend in grad school 🎓",
+      "caption": "Research papers are hard enough without the vocabulary. 🎓\n\np-value. Confounder. Meta-analysis. Ablation. et al.\nSwipe for plain English →\n\nTag a friend in grad school who needs this.",
       "tags": [
         "core",
         "learn"
       ]
     },
     {
+      "id": "26-languages",
+      "at": "2026-10-14T13:30:00Z",
+      "slides": [
+        {
+          "t": "feature",
+          "kicker": "20 languages",
+          "title": "Read in English. Understand in [[your language.]]",
+          "body": "Hindi, Spanish, French, German, Portuguese, Italian, Dutch, Russian, Japanese, Korean, Chinese, Arabic, Turkish, Indonesian, Bengali, Punjabi, Tamil, Urdu, Vietnamese, and English."
+        },
+        {
+          "t": "list",
+          "kicker": "How it works",
+          "title": "Two settings. [[That's it.]]",
+          "items": [
+            "Explain in: the language of the answer",
+            "My first language: adds a one-line meaning in yours",
+            "Pick a level: Simple, Standard or Expert"
+          ]
+        },
+        {
+          "t": "cta"
+        }
+      ],
+      "caption": "Your brain thinks in your first language. Your explanations can too. 🌏\n\nGlossa explains in 20 languages, including Hindi, Tamil, Bengali, Punjabi and Urdu, and can add a one-line meaning in your first language under every answer.\n\nWhat's your first language? 👇",
+      "tags": [
+        "core",
+        "learn"
+      ]
+    },
+    {
+      "id": "15-pronunciation",
+      "at": "2026-10-15T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Say it right",
+          "title": "5 words smart people [[mispronounce.]]",
+          "sub": "Swipe before your next meeting."
+        },
+        {
+          "t": "term",
+          "word": "epitome",
+          "tag": "/ɪˈpɪtəmi/ · ih-PIT-uh-mee",
+          "sentence": "She is the [[epitome]] of calm.",
+          "meaning": "A perfect example of something. Four syllables, not “EP-i-tome”."
+        },
+        {
+          "t": "term",
+          "word": "segue",
+          "tag": "/ˈsɛɡweɪ/ · SEG-way",
+          "sentence": "That's a nice [[segue]] into pricing.",
+          "meaning": "A smooth move from one topic to the next. Spelled segue, said “segway”."
+        },
+        {
+          "t": "term",
+          "word": "hyperbole",
+          "tag": "/haɪˈpɜːrbəli/ · hy-PUR-buh-lee",
+          "sentence": "Calling it the best ever is [[hyperbole]].",
+          "meaning": "Exaggeration on purpose. Four syllables, and it doesn’t rhyme with “Super Bowl”."
+        },
+        {
+          "t": "term",
+          "word": "quinoa",
+          "tag": "/ˈkiːnwɑː/ · KEEN-wah",
+          "sentence": "A bowl of [[quinoa]] and greens.",
+          "meaning": "A grain-like seed. Two syllables: KEEN-wah."
+        },
+        {
+          "t": "term",
+          "word": "niche",
+          "tag": "/niːʃ/ or /nɪtʃ/",
+          "sentence": "They found a [[niche]] market.",
+          "meaning": "A small, specialised area. Both “neesh” and “nitch” are accepted."
+        },
+        {
+          "t": "cta",
+          "sub": "Glossa shows the pronunciation of single words, in context."
+        }
+      ],
+      "caption": "We've all said one of these wrong in a meeting. 🙈\n\nEpitome. Segue. Hyperbole. Quinoa. Niche.\nSwipe for how they're actually pronounced →\n\nWhich one did you get wrong? Be honest 👇",
+      "tags": [
+        "core",
+        "learn"
+      ]
+    },
+    {
+      "id": "28-before-after",
+      "at": "2026-10-15T13:30:00Z",
+      "slides": [
+        {
+          "t": "list",
+          "kicker": "Before Glossa",
+          "title": "Looking up one word took [[5 steps.]]",
+          "items": [
+            "Copy the word",
+            "Open a new tab",
+            "Paste it into Google or ChatGPT",
+            "Read a definition that ignores your sentence",
+            "Come back and lose your place"
+          ]
+        },
+        {
+          "t": "feature",
+          "kicker": "After Glossa",
+          "title": "Now it takes [[one.]]",
+          "body": "Select it and press ⌥E. The meaning fits the sentence, the source line is shown, and the word is saved for next time."
+        },
+        {
+          "t": "cta"
+        }
+      ],
+      "caption": "5 steps → 1 step. ⚡\n\nThat's the whole idea behind Glossa. Free Chrome extension, link in bio.\n\nHow many times a day do you look something up? 👇",
+      "tags": [
+        "core",
+        "learn"
+      ]
+    },
+    {
+      "id": "19-marketing-terms",
+      "at": "2026-10-16T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Decoded",
+          "title": "Marketing metrics, [[explained.]]",
+          "sub": "The 5 numbers every growth meeting mentions."
+        },
+        {
+          "t": "term",
+          "word": "CAC",
+          "tag": "acronym",
+          "sentence": "Our [[CAC]] doubled this quarter.",
+          "meaning": "Customer acquisition cost: what you spend to win one new customer."
+        },
+        {
+          "t": "term",
+          "word": "LTV",
+          "tag": "acronym",
+          "sentence": "[[LTV]] should be at least 3× CAC.",
+          "meaning": "Lifetime value: how much a customer is worth over the whole relationship."
+        },
+        {
+          "t": "term",
+          "word": "churn",
+          "tag": "noun",
+          "sentence": "Monthly [[churn]] is down to 2%.",
+          "meaning": "The share of customers who stop paying in a period."
+        },
+        {
+          "t": "term",
+          "word": "conversion rate",
+          "tag": "noun",
+          "sentence": "The new page lifted our [[conversion rate]].",
+          "meaning": "The share of visitors who take the action you want, like signing up."
+        },
+        {
+          "t": "term",
+          "word": "funnel",
+          "tag": "noun",
+          "sentence": "We lose people at the top of the [[funnel]].",
+          "meaning": "The steps people go through from first visit to paying customer."
+        },
+        {
+          "t": "cta"
+        }
+      ],
+      "caption": "CAC, LTV, churn… if growth meetings feel like alphabet soup, swipe →\n\n5 metrics, one line each. Save this before your next marketing review. 📈",
+      "tags": [
+        "core",
+        "work"
+      ]
+    },
+    {
+      "id": "29-read-a-paper",
+      "at": "2026-10-16T13:30:00Z",
+      "slides": [
+        {
+          "t": "list",
+          "kicker": "Save this",
+          "title": "How to read a research paper [[in 15 minutes.]]",
+          "items": [
+            "Read the abstract and the conclusion first",
+            "Look at the figures before the text",
+            "Skim the methods: what did they actually do?",
+            "Look up unfamiliar terms in context, not in a dictionary",
+            "Write a 3-line summary in your own words"
+          ]
+        },
+        {
+          "t": "feature",
+          "kicker": "Step 4, done for you",
+          "title": "Glossa's PDF reader explains terms [[inside the paper.]]",
+          "body": "Open the PDF, select a term, press ⌥E. It explains it in that sentence, at your level."
+        },
+        {
+          "t": "cta"
+        }
+      ],
+      "caption": "Grad students, this one's for you. 🎓\n\nThe 15-minute method for reading research papers, step by step. Step 4 is where most people lose an hour: Glossa's PDF reader fixes that.\n\nSave it and share it with your lab group.",
+      "tags": [
+        "core",
+        "learn"
+      ]
+    },
+    {
+      "id": "18-crypto-terms",
+      "at": "2026-10-17T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Decoded",
+          "title": "Crypto words, [[minus the hype.]]",
+          "sub": "Plain meanings. Not financial advice."
+        },
+        {
+          "t": "term",
+          "word": "gas fee",
+          "tag": "noun",
+          "sentence": "The [[gas fee]] was higher than the trade.",
+          "meaning": "The fee paid to process a transaction on a blockchain like Ethereum."
+        },
+        {
+          "t": "term",
+          "word": "wallet",
+          "tag": "noun",
+          "sentence": "Move your coins to a hardware [[wallet]].",
+          "meaning": "Software or a device that holds the keys to your crypto."
+        },
+        {
+          "t": "term",
+          "word": "staking",
+          "tag": "noun",
+          "sentence": "She earns rewards by [[staking]].",
+          "meaning": "Locking up coins to help run a network in exchange for rewards."
+        },
+        {
+          "t": "term",
+          "word": "rug pull",
+          "tag": "noun",
+          "sentence": "The token collapsed in a [[rug pull]].",
+          "meaning": "When a project's creators abandon it and run off with investors' money."
+        },
+        {
+          "t": "term",
+          "word": "stablecoin",
+          "tag": "noun",
+          "sentence": "They paid in a [[stablecoin]].",
+          "meaning": "A cryptocurrency designed to keep a steady price, usually tied to the US dollar."
+        },
+        {
+          "t": "cta"
+        }
+      ],
+      "caption": "Crypto has its own dictionary. Here are the 5 words you need first. 🪙\n\nGas fee. Wallet. Staking. Rug pull. Stablecoin.\nSwipe for plain meanings →\n\nNot financial advice. Just less confusion. Save for later.",
+      "tags": [
+        "core",
+        "work"
+      ]
+    },
+    {
       "id": "14-free",
-      "date": "2026-10-18",
+      "at": "2026-10-17T13:30:00Z",
       "slides": [
         {
           "t": "list",
@@ -626,7 +1290,7 @@
           "sub": "Download, load it in Chrome, select a word. That's it."
         }
       ],
-      "caption": "Two weeks of Glossa in one post.\n\nNo account, no card, no API key. A daily allowance of free explanations, and your own key if you want unlimited.\n\nLink in bio. Tell us the hardest word you met this week 👇",
+      "caption": "Everything Glossa does, in one post. And it's free. ✨\n\nExplains any selection with its source line. Remembers every word and underlines it on new pages. Short reviews, a weekly recap, a PDF reader, 20 languages, export to Anki.\n\nNo account. No API key. Link in bio. What's the hardest word you met this week? 👇",
       "tags": [
         "core",
         "learn"

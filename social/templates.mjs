@@ -36,7 +36,7 @@ h2 { font-size: 60px; line-height: 1.1; font-weight: 720; letter-spacing: -1.3px
 .foot .count { font: 500 24px/1 Mono, monospace; color: #6c7480; margin-left: 22px; }
 .card { margin-top: 48px; padding: 44px; border-radius: 30px; background: #1b1f25; border: 2px solid #2a3038; }
 .label { font: 500 22px/1 Mono, monospace; letter-spacing: 2.5px; text-transform: uppercase; color: #8a929d; margin-bottom: 18px; }
-.head { display: flex; align-items: baseline; gap: 20px; }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px 20px; }
 .head b { font-size: 76px; letter-spacing: -1.5px; }
 .tag { flex: none; white-space: nowrap; font: 500 24px/1 Mono, monospace; padding: 10px 16px; border-radius: 10px; background: #262c34; color: #aab1bc; }
 .meaning { margin-top: 26px; font-size: 42px; line-height: 1.38; font-weight: 520; }
@@ -67,6 +67,42 @@ h2 { font-size: 60px; line-height: 1.1; font-weight: 720; letter-spacing: -1.3px
 .stats b { display: block; font-size: 96px; letter-spacing: -2px; }
 .stats span { font-size: 30px; color: #9aa3ae; }
 `;
+
+/* 9:16 stories (1080×1920). Instagram covers the top ~250px and bottom ~340px with its own UI, so content stays in the middle. */
+const STORY_CSS = `
+html, body { width: 1080px; height: 1920px; }
+.story { position: relative; width: 1080px; height: 1920px; padding: 280px 90px 500px; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
+.story .glow { width: 1200px; height: 1200px; right: -520px; top: -380px; }
+.story .badge { align-self: flex-start; font: 500 30px/1 Mono, monospace; letter-spacing: 4px; text-transform: uppercase; color: #12151a; background: #dceeb1; padding: 16px 22px; border-radius: 12px; margin-bottom: 54px; }
+.story h1 { font-size: 132px; letter-spacing: -3px; line-height: 1.02; }
+.story .say { margin-top: 26px; font: 500 34px/1.3 Mono, monospace; color: #9aa3ae; }
+.story .meaning { font-size: 54px; line-height: 1.32; margin-top: 54px; }
+.story .quote { font-size: 40px; margin-top: 54px; }
+.story .q { font-size: 96px; line-height: 1.08; font-weight: 750; letter-spacing: -2px; }
+.story .opts { margin-top: 64px; display: grid; gap: 22px; }
+.story .opts div { padding: 34px 40px; border-radius: 26px; background: #1b1f25; border: 2px solid #2a3038; font-size: 46px; font-weight: 600; }
+.story .hint { margin-top: 60px; font-size: 40px; color: #c4c9d0; }
+.story .sfoot { position: absolute; left: 90px; right: 90px; bottom: 380px; display: flex; align-items: center; gap: 20px; font-size: 36px; font-weight: 650; }
+.story .sfoot .url { margin-left: auto; font: 500 30px/1 Mono, monospace; color: #9aa3ae; }
+`;
+
+function storyDoc(inner) {
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}${STORY_CSS}</style></head><body>
+<div class="story"><div class="glow"></div>${inner}
+<div class="sfoot"><span class="mark"><i></i><i></i><i></i></span>Glossa<span class="url">link in bio</span></div></div></body></html>`;
+}
+
+export const STORY_TEMPLATES = {
+  word: (s) =>
+    storyDoc(`<span class="badge">${esc(s.badge || 'Word of the day')}</span><h1>${esc(s.word)}</h1>${s.say ? `<div class="say">${esc(s.say)}</div>` : ''}
+      <div class="meaning">${esc(s.meaning)}</div>${s.sentence ? `<div class="quote"><span class="cap">In a sentence</span>${rich(s.sentence)}</div>` : ''}`),
+  quiz: (s) =>
+    storyDoc(`<span class="badge">${esc(s.badge || 'Quick quiz')}</span><div class="q">${rich(s.question)}</div>
+      <div class="opts">${(s.options || []).map((o, i) => `<div>${'ABC'[i]}. ${esc(o)}</div>`).join('')}</div><p class="hint">${rich(s.hint || 'Answer in today’s post. Reply with your guess 👇')}</p>`),
+  tip: (s) => storyDoc(`<span class="badge">${esc(s.badge || 'Reading tip')}</span><div class="q">${rich(s.title)}</div><p class="hint">${rich(s.body || '')}</p>`),
+  teaser: (s) =>
+    storyDoc(`<span class="badge">${esc(s.badge || 'New post')}</span><div class="q">${rich(s.title)}</div><p class="hint">${rich(s.body || 'Tap our profile to see it. Save it for later.')}</p>`),
+};
 
 function doc(inner, { n, total }) {
   const count = total > 1 ? `<span class="count">${n}/${total}</span>` : '';

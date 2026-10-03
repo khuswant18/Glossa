@@ -1,0 +1,127 @@
+{
+  "_readme": "One story per day at 13:00 IST (07:30 UTC). Stories are only posted on their own date; a missed day is skipped. Render with npm run social:render.",
+  "stories": [
+    {
+      "id": "s01-priced-in",
+      "date": "2026-10-04",
+      "t": "word",
+      "word": "priced in",
+      "say": "phrase",
+      "meaning": "Already expected by markets, so prices moved before the news.",
+      "sentence": "With a rate cut already [[priced in]], stocks barely moved."
+    },
+    {
+      "id": "s02-quiz-nonplussed",
+      "date": "2026-10-05",
+      "t": "quiz",
+      "question": "What does [[“nonplussed”]] really mean?",
+      "options": [
+        "Calm and unbothered",
+        "So confused you can't react",
+        "Bored"
+      ]
+    },
+    {
+      "id": "s03-tip-phrases",
+      "date": "2026-10-06",
+      "t": "tip",
+      "title": "Look up the [[phrase]], not the word.",
+      "body": "“Priced in” means something “priced” and “in” never will. Select the whole phrase."
+    },
+    {
+      "id": "s04-low-hanging-fruit",
+      "date": "2026-10-07",
+      "t": "word",
+      "word": "low-hanging fruit",
+      "say": "phrase",
+      "meaning": "The easiest wins, the ones that need the least effort.",
+      "sentence": "Let's start with the [[low-hanging fruit]]."
+    },
+    {
+      "id": "s05-teaser-contracts",
+      "date": "2026-10-08",
+      "t": "teaser",
+      "title": "5 words in [[every contract]] you sign.",
+      "body": "New post today. Tap our profile, and save it before your next lease or job offer."
+    },
+    {
+      "id": "s06-hallucination",
+      "date": "2026-10-09",
+      "t": "word",
+      "word": "hallucination",
+      "say": "noun · AI",
+      "meaning": "When an AI states something false as if it were true.",
+      "sentence": "The chatbot's citation was a [[hallucination]]."
+    },
+    {
+      "id": "s07-tip-revisit",
+      "date": "2026-10-10",
+      "t": "tip",
+      "title": "See a new word [[again tomorrow.]]",
+      "body": "Words stick when you meet them a day later, then a week later. Glossa's Review does this for you."
+    },
+    {
+      "id": "s08-idempotent",
+      "date": "2026-10-11",
+      "t": "word",
+      "word": "idempotent",
+      "say": "/ˌaɪdəmˈpoʊtənt/ · adjective",
+      "meaning": "Doing it twice has the same effect as doing it once.",
+      "sentence": "Retries are safe because every write is [[idempotent]]."
+    },
+    {
+      "id": "s09-quiz-on-the-fence",
+      "date": "2026-10-12",
+      "t": "quiz",
+      "question": "Someone is [[“on the fence”]]. They are…",
+      "options": [
+        "Trespassing",
+        "Undecided",
+        "Hiding something"
+      ]
+    },
+    {
+      "id": "s10-stagflation",
+      "date": "2026-10-13",
+      "t": "word",
+      "word": "stagflation",
+      "say": "noun",
+      "meaning": "High inflation and weak growth at the same time.",
+      "sentence": "Investors fear a return of [[stagflation]]."
+    },
+    {
+      "id": "s11-tip-abstract",
+      "date": "2026-10-14",
+      "t": "tip",
+      "title": "Read the [[abstract and conclusion]] first.",
+      "body": "Then the figures. Then decide if the rest is worth your time. More in today's post."
+    },
+    {
+      "id": "s12-quiz-epitome",
+      "date": "2026-10-15",
+      "t": "quiz",
+      "question": "How do you say [[“epitome”]]?",
+      "options": [
+        "EP-i-tome",
+        "ih-PIT-uh-mee",
+        "EP-i-toe-mee"
+      ]
+    },
+    {
+      "id": "s13-churn",
+      "date": "2026-10-16",
+      "t": "word",
+      "word": "churn",
+      "say": "noun · business",
+      "meaning": "The share of customers who stop paying in a period.",
+      "sentence": "Monthly [[churn]] fell to 2%."
+    },
+    {
+      "id": "s14-teaser-free",
+      "date": "2026-10-17",
+      "t": "teaser",
+      "title": "Everything Glossa does, [[free.]]",
+      "body": "Our two-week recap is live tonight. Link in bio to try it."
+    }
+  ]
+}

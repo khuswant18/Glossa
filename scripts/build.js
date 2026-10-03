@@ -244,7 +244,7 @@ async function writeVercelOutput() {
       { src: '/v1/(.*)', dest: '/api?__path=/v1/$1' },
       { src: '/api(?:/.*)?', status: 404, dest: '/404.html' },
       { handle: 'filesystem' },
-      { src: '/(install|privacy|terms|goodbye|demo)/?', dest: '/$1.html' },
+      { src: '/(install|privacy|terms|goodbye|demo|links)/?', dest: '/$1.html' },
       { handle: 'error' },
       { src: '/.*', status: 404, dest: '/404.html' },
     ],

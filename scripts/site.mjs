@@ -39,6 +39,7 @@ const ICONS = {
   keyboard: icon('<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>'),
   x: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
   coffee: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 3.5c-.6.8-.6 1.7 0 2.5M12 3.5c-.6.8-.6 1.7 0 2.5"/></svg>',
+  instagram: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
   menu: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
 };
 
@@ -700,12 +701,39 @@ const siteJs = `// Glossa site: nav, scroll reveal, smooth FAQ, feedback form, a
 })();
 `;
 
+// Link-in-bio page for Instagram and other profiles: minimal, phone-first, one tap to install.
+const INSTAGRAM_URL = 'https://www.instagram.com/build_ai18/';
+const links =
+  head('Glossa · Links', 'Glossa: the explainer that remembers. Install the free Chrome extension, try it live, and follow along.') +
+  `
+<main class="links">
+  <div class="links-card">
+    <a class="links-brand" href="/">${MARK(64)}</a>
+    <h1>Glossa</h1>
+    <p class="links-tag">The explainer that remembers. Select any text, understand it in context, keep every word.</p>
+    <nav class="links-list" aria-label="Links">
+      <a class="links-btn primary" href="/install">Get Glossa for Chrome · free</a>
+      <a class="links-btn" href="/#try">Try it in your browser</a>
+      <a class="links-btn" href="/demo">Practice page</a>
+      <a class="links-btn" href="/#faq">How it works &amp; FAQ</a>
+      <a class="links-btn" href="${INSTAGRAM_URL}" ${ext}>${ICONS.instagram}Instagram</a>
+      <a class="links-btn" href="${TWITTER_URL}" ${ext}>${ICONS.x}Follow on X</a>
+      <a class="links-btn coffee" href="${COFFEE_URL}" ${ext}>${ICONS.coffee}Buy me a coffee</a>
+    </nav>
+    <p class="links-note">No API key · No account · Chrome, Edge, Brave, Arc</p>
+  </div>
+</main>
+</body>
+</html>
+`;
+
 function sitemap() {
   const day = new Date().toISOString().slice(0, 10);
   const pages = [
     ['/', '1.0', 'weekly'],
     ['/install', '0.8', 'monthly'],
     ['/demo', '0.5', 'monthly'],
+    ['/links', '0.4', 'monthly'],
     ['/privacy', '0.3', 'yearly'],
     ['/terms', '0.3', 'yearly'],
   ];
@@ -723,6 +751,7 @@ const files = {
   'goodbye.html': goodbye,
   '404.html': notFound,
   'demo.html': demo,
+  'links.html': links,
   'demo-frame.html': demoFrame,
   'boot.js': bootJs,
   'site.js': siteJs,

@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { TEMPLATES } from '../social/templates.mjs';
+import { STORY_TEMPLATES, TEMPLATES } from '../social/templates.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'website/social');
@@ -31,5 +31,22 @@ for (const post of posts) {
     count++;
   }
 }
+// Stories (1080×1920)
+const storiesFile = path.join(root, 'social/stories.json');
+let storyCount = 0;
+if (fs.existsSync(storiesFile)) {
+  const { stories } = JSON.parse(fs.readFileSync(storiesFile, 'utf8'));
+  fs.mkdirSync(path.join(out, 'stories'), { recursive: true });
+  const sp = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
+  for (const story of stories) {
+    if (only && story.id !== only) continue;
+    const render = STORY_TEMPLATES[story.t];
+    if (!render) throw new Error(`${story.id}: unknown story type "${story.t}"`);
+    await sp.setContent(render(story), { waitUntil: 'load' });
+    await sp.evaluate(() => document.fonts.ready);
+    await sp.screenshot({ path: path.join(out, 'stories', `${story.id}.jpg`), type: 'jpeg', quality: 90 });
+    storyCount++;
+  }
+}
 await browser.close();
-console.log(`social: ${count} slides written to website/social/`);
+console.log(`social: ${count} slides and ${storyCount} stories written to website/social/`);

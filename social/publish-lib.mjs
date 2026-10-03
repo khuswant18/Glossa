@@ -29,13 +29,29 @@ export function isPublished(post, recentCaptions) {
   return recentCaptions.some((c) => fingerprint(c) === fp);
 }
 
-/** Posts whose date (UTC) has arrived and that aren't on Instagram yet, oldest first. */
-export function duePosts(posts, recentCaptions, today = new Date().toISOString().slice(0, 10)) {
-  return posts.filter((p) => p.date <= today && !isPublished(p, recentCaptions)).sort((a, b) => a.date.localeCompare(b.date));
+/** When a post is scheduled: an exact `at` (ISO time), or a plain `date` meaning 19:00 IST that day. */
+export function postTime(p) {
+  return Date.parse(p.at || `${p.date}T13:30:00Z`);
+}
+
+/** Posts whose time has arrived and that aren't on Instagram yet, oldest first. */
+export function duePosts(posts, recentCaptions, now = Date.now()) {
+  const t = typeof now === 'string' ? Date.parse(`${now}T23:59:59Z`) : now;
+  return posts.filter((p) => postTime(p) <= t && !isPublished(p, recentCaptions)).sort((a, b) => postTime(a) - postTime(b));
 }
 
 export function imageUrls(post, baseUrl) {
   return post.slides.map((_, i) => `${baseUrl.replace(/\/+$/, '')}/social/${post.id}-${i + 1}.jpg`);
+}
+
+export function storyUrl(story, baseUrl) {
+  return `${baseUrl.replace(/\/+$/, '')}/social/stories/${story.id}.jpg`;
+}
+
+/** Today's story (UTC date), if any. Stories are only posted on their own day; missed ones are skipped. */
+export function storyForToday(stories, now = Date.now()) {
+  const today = new Date(now).toISOString().slice(0, 10);
+  return stories.find((s) => s.date === today) || null;
 }
 
 export class InstagramClient {
@@ -123,6 +139,26 @@ export class InstagramClient {
     const media = await this.call('POST', `${id}/media_publish`, { creation_id: container });
     const info = await this.call('GET', media.id, { fields: 'permalink' }).catch(() => ({}));
     return { id: media.id, permalink: info.permalink || '' };
+  }
+
+  /** Times of stories currently live (last 24 h); empty if the account can't list them. */
+  async liveStoryTimes() {
+    const id = await this.ensureUser();
+    try {
+      const data = await this.call('GET', `${id}/stories`, { fields: 'timestamp' });
+      return (data.data || []).map((s) => Date.parse(s.timestamp)).filter(Number.isFinite);
+    } catch {
+      return [];
+    }
+  }
+
+  /** Publishes one image story (9:16). Returns { id }. */
+  async publishStory(url) {
+    const id = await this.ensureUser();
+    const container = (await this.call('POST', `${id}/media`, { image_url: url, media_type: 'STORIES' })).id;
+    await this.waitFinished(container, 120_000);
+    const media = await this.call('POST', `${id}/media_publish`, { creation_id: container });
+    return { id: media.id };
   }
 
   /** Long-lived tokens last 60 days; this returns a fresh one (call at least every ~50 days). */

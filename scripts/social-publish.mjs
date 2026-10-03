@@ -5,6 +5,7 @@
  *   npm run social:publish -- --dry-run    show what would be posted and check the images are live
  *   npm run social:publish -- --id=03-memory   post that one now (still skipped if already posted)
  *   npm run social:publish -- --list       the queue and what's already posted
+ *   npm run social:publish -- --stories    post today's story (once a day; skipped if one went up in the last 20 h)
  *   npm run social:publish -- --check      verify the token and account
  *   npm run social:publish -- --refresh-token  print a fresh 60-day token (put it back in your secrets)
  *
@@ -15,7 +16,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { InstagramClient, buildCaption, duePosts, imageUrls, isPublished } from '../social/publish-lib.mjs';
+import { InstagramClient, buildCaption, duePosts, imageUrls, isPublished, postTime, storyForToday, storyUrl } from '../social/publish-lib.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const envFile = path.join(root, 'social/.env');
@@ -31,6 +32,9 @@ const flag = (name) => args.includes(`--${name}`);
 const value = (name) => args.find((a) => a.startsWith(`--${name}=`))?.split('=')[1];
 
 const queue = JSON.parse(fs.readFileSync(path.join(root, 'social/posts.json'), 'utf8'));
+const storiesFile = path.join(root, 'social/stories.json');
+const stories = fs.existsSync(storiesFile) ? JSON.parse(fs.readFileSync(storiesFile, 'utf8')).stories : [];
+const ist = (t) => new Date(t + 5.5 * 3600_000).toISOString().slice(0, 16).replace('T', ' ') + ' IST';
 const base = process.env.SOCIAL_BASE_URL || 'https://glossa.wovenbit.tech';
 const token = process.env.IG_ACCESS_TOKEN || '';
 
@@ -69,9 +73,36 @@ try {
     process.exit(0);
   }
 
+  if (flag('stories')) {
+    const story = storyForToday(stories);
+    if (!story) {
+      console.log('No story planned for today.');
+      process.exit(0);
+    }
+    const recentStory = (await ig.liveStoryTimes()).some((t) => Date.now() - t < 20 * 3600_000);
+    if (recentStory && !flag('force')) {
+      console.log('A story already went up in the last 20 hours; skipping.');
+      process.exit(0);
+    }
+    const url = storyUrl(story, base);
+    const missing = await imagesLive([url]);
+    if (missing) throw new Error(`Story image not live yet: ${missing}`);
+    console.log(`Story ${story.id}…`);
+    if (flag('dry-run')) {
+      console.log('Dry run: nothing was posted. Image is live.');
+      process.exit(0);
+    }
+    const done = await ig.publishStory(url);
+    console.log(`Story published (${done.id}).`);
+    process.exit(0);
+  }
+
   const recent = await ig.recentCaptions();
   if (flag('list')) {
-    for (const p of queue.posts) console.log(`${isPublished(p, recent) ? '✓ posted ' : '  queued '} ${p.date}  ${p.id}  (${p.slides.length} slide${p.slides.length > 1 ? 's' : ''})`);
+    for (const p of [...queue.posts].sort((a, b) => postTime(a) - postTime(b))) {
+      console.log(`${isPublished(p, recent) ? '✓ posted ' : '  queued '} ${ist(postTime(p))}  ${p.id}  (${p.slides.length} slide${p.slides.length > 1 ? 's' : ''})`);
+    }
+    console.log(`\nStories: ${stories.length} planned, one a day.`);
     process.exit(0);
   }
 
@@ -79,7 +110,7 @@ try {
   if (value('id') && !pick.length) throw new Error(`No post with id "${value('id')}".`);
   const post = pick[0];
   if (!post || isPublished(post, recent)) {
-    console.log(post ? `"${post.id}" is already on Instagram.` : 'Nothing due today.');
+    console.log(post ? `"${post.id}" is already on Instagram.` : 'Nothing due right now.');
     process.exit(0);
   }
 

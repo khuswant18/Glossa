@@ -1,17 +1,25 @@
 name: Instagram
 
-# Posts the next due post from social/posts.json once a day (images must already be live on the site).
+# Posts from social/posts.json at 07:00 and 19:00 IST, and today's story from social/stories.json at 13:00 IST.
+# Images must already be live on the site (they're deployed with the repo).
 on:
   schedule:
-    - cron: '30 13 * * *' # 13:30 UTC = 19:00 IST
+    - cron: '30 1 * * *' # 07:00 IST: post
+    - cron: '30 7 * * *' # 13:00 IST: story
+    - cron: '30 13 * * *' # 19:00 IST: post
   workflow_dispatch:
     inputs:
+      mode:
+        description: 'What to publish'
+        type: choice
+        options: [post, story]
+        default: post
       id:
         description: 'Post id to publish now (empty = next due post)'
         required: false
         default: ''
       dry_run:
-        description: 'Dry run (check only, do not post)'
+        description: 'Dry run (check only, do not publish)'
         type: boolean
         default: false
 
@@ -32,7 +40,11 @@ jobs:
         with:
           node-version: 22
       - name: Publish
-        run: node scripts/social-publish.mjs ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.id && format('--id={0}', inputs.id) || '' }}
+        run: >
+          node scripts/social-publish.mjs
+          ${{ (github.event.schedule == '30 7 * * *' || inputs.mode == 'story') && '--stories' || '' }}
+          ${{ inputs.dry_run && '--dry-run' || '' }}
+          ${{ inputs.id && format('--id={0}', inputs.id) || '' }}
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}

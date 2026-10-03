@@ -466,6 +466,7 @@ const PAGES: Record<string, string> = {
   '/goodbye': 'goodbye.html',
   '/demo': 'demo.html',
   '/install': 'install.html',
+  '/links': 'links.html',
 };
 
 function clientIp(req: http.IncomingMessage, trustProxy: boolean): string {
