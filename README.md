@@ -74,6 +74,10 @@ Users install from the website: download the zip, unzip, `chrome://extensions` â
 
 Self-hosting instead: `npm run build && npm run server` runs the same API and site on one port (behind a proxy, set `TRUST_PROXY=1`).
 
+## Instagram
+
+`social/posts.json` holds a two-week queue of posts. `npm run social:render` turns them into 1080Ã—1350 JPEGs in `website/social/`, which the site serves. `.github/workflows/instagram.yml` posts the next due one daily through the official Instagram API (`scripts/social-publish.mjs`). It needs an `IG_ACCESS_TOKEN` secret and never posts the same thing twice. Setup: [docs/instagram-setup.md](docs/instagram-setup.md).
+
 ## Tests
 
 ```bash

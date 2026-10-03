@@ -15,7 +15,10 @@
     "test:watch": "vitest",
     "e2e": "node e2e/run.mjs",
     "e2e:live": "GLOSSA_E2E_LIVE=1 node e2e/run.mjs",
-    "build:vercel": "tsc --noEmit && node scripts/build.js --vercel"
+    "build:vercel": "tsc --noEmit && node scripts/build.js --vercel",
+    "social:render": "node scripts/social-render.mjs",
+    "social:publish": "node scripts/social-publish.mjs",
+    "social:list": "node scripts/social-publish.mjs --list"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

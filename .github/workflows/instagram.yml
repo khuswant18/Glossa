@@ -1,0 +1,39 @@
+name: Instagram
+
+# Posts the next due post from social/posts.json once a day (images must already be live on the site).
+on:
+  schedule:
+    - cron: '30 13 * * *' # 13:30 UTC = 19:00 IST
+  workflow_dispatch:
+    inputs:
+      id:
+        description: 'Post id to publish now (empty = next due post)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run (check only, do not post)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: instagram
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Publish
+        run: node scripts/social-publish.mjs ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.id && format('--id={0}', inputs.id) || '' }}
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          SOCIAL_BASE_URL: https://glossa.wovenbit.tech

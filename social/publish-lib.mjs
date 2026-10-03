@@ -1,0 +1,139 @@
+/**
+ * Instagram publishing via the official Instagram API (with Instagram Login):
+ * https://developers.facebook.com/docs/instagram-platform/content-publishing/
+ * Flow: create a media container per image (carousel items first), wait until FINISHED, publish.
+ * No dependencies; Node 20+ (global fetch).
+ */
+
+export const MAX_HASHTAGS = 30;
+export const MAX_CAPTION = 2200;
+
+export function buildCaption(post, hashtagGroups = {}) {
+  const tags = [...new Set((post.tags || []).flatMap((g) => hashtagGroups[g] || []))].slice(0, MAX_HASHTAGS);
+  const caption = [post.caption.trim(), tags.join(' ')].filter(Boolean).join('\n\n');
+  return caption.length > MAX_CAPTION ? caption.slice(0, MAX_CAPTION) : caption;
+}
+
+/** First line of a caption, normalised: how a post is recognised as already published. */
+export function fingerprint(caption) {
+  return String(caption || '')
+    .split('\n')[0]
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+    .slice(0, 80);
+}
+
+export function isPublished(post, recentCaptions) {
+  const fp = fingerprint(post.caption);
+  return recentCaptions.some((c) => fingerprint(c) === fp);
+}
+
+/** Posts whose date (UTC) has arrived and that aren't on Instagram yet, oldest first. */
+export function duePosts(posts, recentCaptions, today = new Date().toISOString().slice(0, 10)) {
+  return posts.filter((p) => p.date <= today && !isPublished(p, recentCaptions)).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export function imageUrls(post, baseUrl) {
+  return post.slides.map((_, i) => `${baseUrl.replace(/\/+$/, '')}/social/${post.id}-${i + 1}.jpg`);
+}
+
+export class InstagramClient {
+  /**
+   * @param {{ token: string, userId?: string, apiBase?: string, pollMs?: number, log?: (s: string) => void }} opts
+   */
+  constructor({ token, userId, apiBase = 'https://graph.instagram.com/v25.0', pollMs = 3000, log = () => undefined }) {
+    this.token = token;
+    this.userId = userId;
+    this.apiBase = apiBase.replace(/\/+$/, '');
+    this.pollMs = pollMs;
+    this.log = log;
+  }
+
+  async call(method, path, params = {}) {
+    const url = new URL(`${this.apiBase}/${path.replace(/^\//, '')}`);
+    const body = new URLSearchParams({ ...params, access_token: this.token });
+    let res;
+    if (method === 'GET') {
+      for (const [k, v] of body) url.searchParams.set(k, v);
+      res = await fetch(url);
+    } else {
+      res = await fetch(url, { method, body });
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) {
+      const e = data.error || {};
+      throw new Error(`Instagram API ${res.status}: ${e.message || 'request failed'}${e.error_user_msg ? ` (${e.error_user_msg})` : ''}`);
+    }
+    return data;
+  }
+
+  async me() {
+    const data = await this.call('GET', 'me', { fields: 'user_id,username,account_type' });
+    this.userId = this.userId || data.user_id || data.id;
+    return data;
+  }
+
+  async ensureUser() {
+    if (!this.userId) await this.me();
+    return this.userId;
+  }
+
+  async recentCaptions(limit = 50) {
+    const id = await this.ensureUser();
+    const data = await this.call('GET', `${id}/media`, { fields: 'caption,timestamp', limit: String(limit) });
+    return (data.data || []).map((m) => m.caption || '');
+  }
+
+  async publishingQuota() {
+    const id = await this.ensureUser();
+    const data = await this.call('GET', `${id}/content_publishing_limit`, { fields: 'quota_usage,config' });
+    const row = (data.data || [])[0] || {};
+    return { used: row.quota_usage ?? 0, total: row.config?.quota_total ?? 100 };
+  }
+
+  async waitFinished(containerId, timeoutMs) {
+    const end = Date.now() + timeoutMs;
+    for (;;) {
+      const { status_code: status } = await this.call('GET', containerId, { fields: 'status_code' });
+      if (status === 'FINISHED' || status === 'PUBLISHED') return;
+      if (status === 'ERROR' || status === 'EXPIRED') throw new Error(`Instagram could not process the media (${status}).`);
+      if (Date.now() > end) throw new Error('Instagram took too long to process the media.');
+      await new Promise((r) => setTimeout(r, this.pollMs));
+    }
+  }
+
+  /** Publishes one post (single image, or carousel of up to 10). Returns { id, permalink }. */
+  async publish({ urls, caption }) {
+    const id = await this.ensureUser();
+    let container;
+    if (urls.length === 1) {
+      container = (await this.call('POST', `${id}/media`, { image_url: urls[0], caption })).id;
+    } else {
+      if (urls.length > 10) throw new Error('A carousel can have at most 10 slides.');
+      const children = [];
+      for (const [i, url] of urls.entries()) {
+        this.log(`  slide ${i + 1}/${urls.length}`);
+        children.push((await this.call('POST', `${id}/media`, { image_url: url, is_carousel_item: 'true' })).id);
+      }
+      for (const child of children) await this.waitFinished(child, 120_000);
+      container = (await this.call('POST', `${id}/media`, { media_type: 'CAROUSEL', children: children.join(','), caption })).id;
+    }
+    await this.waitFinished(container, 120_000);
+    const media = await this.call('POST', `${id}/media_publish`, { creation_id: container });
+    const info = await this.call('GET', media.id, { fields: 'permalink' }).catch(() => ({}));
+    return { id: media.id, permalink: info.permalink || '' };
+  }
+
+  /** Long-lived tokens last 60 days; this returns a fresh one (call at least every ~50 days). */
+  async refreshToken() {
+    const host = new URL(this.apiBase).origin;
+    const url = new URL(`${host}/refresh_access_token`);
+    url.searchParams.set('grant_type', 'ig_refresh_token');
+    url.searchParams.set('access_token', this.token);
+    const res = await fetch(url);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) throw new Error(`Token refresh failed: ${data.error?.message || res.status}`);
+    return data;
+  }
+}

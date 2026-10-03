@@ -455,6 +455,8 @@ const MIME: Record<string, string> = {
   '.xml': 'application/xml; charset=utf-8',
   '.zip': 'application/zip',
   '.webp': 'image/webp',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
 };
 
 const PAGES: Record<string, string> = {

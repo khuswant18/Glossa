@@ -38,3 +38,7 @@ research_notes/Glossa market and feature research/language_learners.md
 research_notes/Glossa market and feature research/moats_and_business_models.md
 research_notes/Glossa market and feature research/reader_pain_points.md
 research_notes/Glossa market and feature research/vertical_and_team_tools.md
+
+# Instagram publishing token (never commit)
+social/.env
+social/kit/
