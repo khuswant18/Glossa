@@ -20,9 +20,10 @@ const lines = ['# Instagram posting kit', '', 'Upload each folder as one post (s
 for (const p of posts) {
   const dir = path.join(kit, `${p.date}-${p.id}`);
   fs.mkdirSync(dir);
-  p.slides.forEach((_, i) => fs.copyFileSync(path.join(root, `website/social/${p.id}-${i + 1}.jpg`), path.join(dir, `${i + 1}.jpg`)));
+  if (p.type === 'reel') fs.copyFileSync(path.join(root, `website/social/reels/${p.id}.mp4`), path.join(dir, 'reel.mp4'));
+  else p.slides.forEach((_, i) => fs.copyFileSync(path.join(root, `website/social/${p.id}-${i + 1}.jpg`), path.join(dir, `${i + 1}.jpg`)));
   fs.writeFileSync(path.join(dir, 'caption.txt'), buildCaption(p, hashtags) + '\n');
-  lines.push(`- ${p.date}  ${p.id}  (${p.slides.length} image${p.slides.length > 1 ? 's' : ''})`);
+  lines.push(`- ${p.date}  ${p.id}  (${p.type === 'reel' ? 'reel' : `${p.slides.length} image${p.slides.length > 1 ? 's' : ''}`})`);
 }
 
 // Profile picture: the Glossa mark, kept inside the circle Instagram crops to.

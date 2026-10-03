@@ -21,6 +21,7 @@ const page = await browser.newPage({ viewport: { width: 1080, height: 1350 }, de
 let count = 0;
 for (const post of posts) {
   if (only && post.id !== only) continue;
+  if (post.type === 'reel') continue; // reels are finished videos in website/social/reels/
   if (post.slides.length > 10) throw new Error(`${post.id}: Instagram carousels allow at most 10 slides`);
   for (const [i, slide] of post.slides.entries()) {
     const render = TEMPLATES[slide.t];

@@ -16,7 +16,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { InstagramClient, buildCaption, duePosts, imageUrls, isPublished, postTime, storyForToday, storyUrl } from '../social/publish-lib.mjs';
+import { InstagramClient, buildCaption, duePosts, imageUrls, isPublished, postTime, storyForToday, storyUrl, videoUrl } from '../social/publish-lib.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const envFile = path.join(root, 'social/.env');
@@ -50,10 +50,10 @@ const ig = new InstagramClient({
   log: (s) => console.log(s),
 });
 
-async function imagesLive(urls) {
+async function imagesLive(urls, type = 'image/jpeg') {
   for (const url of urls) {
     const res = await fetch(url, { method: 'HEAD' }).catch(() => null);
-    if (!res || !res.ok || !String(res.headers.get('content-type')).includes('image/jpeg')) return url;
+    if (!res || !res.ok || !String(res.headers.get('content-type')).includes(type)) return url;
   }
   return null;
 }
@@ -100,7 +100,8 @@ try {
   const recent = await ig.recentCaptions();
   if (flag('list')) {
     for (const p of [...queue.posts].sort((a, b) => postTime(a) - postTime(b))) {
-      console.log(`${isPublished(p, recent) ? '✓ posted ' : '  queued '} ${ist(postTime(p))}  ${p.id}  (${p.slides.length} slide${p.slides.length > 1 ? 's' : ''})`);
+      const kind = p.type === 'reel' ? 'reel' : `${p.slides.length} slide${p.slides.length > 1 ? 's' : ''}`;
+      console.log(`${isPublished(p, recent) ? '✓ posted ' : '  queued '} ${ist(postTime(p))}  ${p.id}  (${kind})`);
     }
     console.log(`\nStories: ${stories.length} planned, one a day.`);
     process.exit(0);
@@ -114,12 +115,28 @@ try {
     process.exit(0);
   }
 
+  const caption = buildCaption(post, queue.hashtags);
+  if (post.type === 'reel') {
+    const url = videoUrl(post, base);
+    const missing = await imagesLive([url], 'video/mp4');
+    if (missing) throw new Error(`Video not live yet: ${missing}\nCommit website/social/reels/${post.id}.mp4, push, and wait for the deploy.`);
+    console.log(`Posting reel ${post.id}…`);
+    if (flag('dry-run')) {
+      console.log(`\n--- caption ---\n${caption}\n---------------\nDry run: nothing was posted. Video is live.`);
+      process.exit(0);
+    }
+    const q = await ig.publishingQuota();
+    if (q.used >= q.total) throw new Error(`Instagram's daily publishing limit is reached (${q.used}/${q.total}). Try later.`);
+    const done = await ig.publishReel({ videoUrl: url, caption, thumbOffsetMs: post.thumbOffsetMs });
+    console.log(`Published: ${done.permalink || done.id}`);
+    process.exit(0);
+  }
+
   const urls = imageUrls(post, base);
   const missing = await imagesLive(urls);
   if (missing) {
     throw new Error(`Image not live yet: ${missing}\nRun "npm run social:render", commit, push, and wait for the deploy.`);
   }
-  const caption = buildCaption(post, queue.hashtags);
   console.log(`Posting ${post.id} (${urls.length} slide${urls.length > 1 ? 's' : ''})…`);
   if (flag('dry-run')) {
     console.log(`\n--- caption ---\n${caption}\n---------------\nDry run: nothing was posted. Images are live.`);

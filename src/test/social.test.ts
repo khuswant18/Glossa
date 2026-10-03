@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 // @ts-expect-error plain ESM helper without types
-import { InstagramClient, buildCaption, duePosts, fingerprint, imageUrls, isPublished, postTime, storyForToday, storyUrl } from '../../social/publish-lib.mjs';
+import { InstagramClient, buildCaption, duePosts, fingerprint, imageUrls, isPublished, postTime, storyForToday, storyUrl, videoUrl } from '../../social/publish-lib.mjs';
 
 const queue = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../social/posts.json'), 'utf8'));
 const { stories } = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../social/stories.json'), 'utf8'));
@@ -16,8 +16,11 @@ describe('post queue', () => {
       expect(ids.has(p.id)).toBe(false);
       ids.add(p.id);
       expect(Number.isFinite(postTime(p))).toBe(true);
-      expect(p.slides.length).toBeGreaterThan(0);
-      expect(p.slides.length).toBeLessThanOrEqual(10);
+      if (p.type === 'reel') expect(p.slides).toBeUndefined();
+      else {
+        expect(p.slides.length).toBeGreaterThan(0);
+        expect(p.slides.length).toBeLessThanOrEqual(10);
+      }
       const caption = buildCaption(p, queue.hashtags);
       expect(caption.length).toBeLessThanOrEqual(2200);
       expect((caption.match(/#\w+/g) || []).length).toBeLessThanOrEqual(30);
@@ -47,8 +50,13 @@ describe('post queue', () => {
     expect(fingerprint(intro.caption)).toBe("every time you hit a word you don't know, you leave the page. glossa explains it");
   });
 
-  it('every slide has a rendered image', () => {
+  it('every slide has a rendered image, every reel its video', () => {
     for (const p of queue.posts) {
+      if (p.type === 'reel') {
+        expect(fs.existsSync(path.resolve(__dirname, `../../website/social/reels/${p.id}.mp4`))).toBe(true);
+        expect(videoUrl(p, 'https://g.tech/')).toBe(`https://g.tech/social/reels/${p.id}.mp4`);
+        continue;
+      }
       p.slides.forEach((_: unknown, i: number) => expect(fs.existsSync(path.resolve(__dirname, `../../website/social/${p.id}-${i + 1}.jpg`))).toBe(true));
     }
   });
@@ -120,6 +128,16 @@ describe('Instagram client against a fake Graph API', () => {
     expect(out.id).toBe('m1');
     const posts = calls.filter((c) => c.method === 'POST');
     expect(posts[0].params).toMatchObject({ image_url: 'https://s/story.jpg', media_type: 'STORIES' });
+    expect(posts[1].path).toBe('/v25.0/1789/media_publish');
+  });
+
+  it('publishes a reel: REELS container from the video URL, shared to the feed, wait, publish', async () => {
+    calls.length = 0;
+    const ig = new InstagramClient({ token: 'tok', apiBase: base, userId: '1789', pollMs: 1 });
+    const out = await ig.publishReel({ videoUrl: 'https://s/r.mp4', caption: 'Hi', thumbOffsetMs: 2600 });
+    expect(out).toEqual({ id: 'm1', permalink: 'https://instagram.com/p/abc' });
+    const posts = calls.filter((c) => c.method === 'POST');
+    expect(posts[0].params).toMatchObject({ media_type: 'REELS', video_url: 'https://s/r.mp4', caption: 'Hi', share_to_feed: 'true', thumb_offset: '2600' });
     expect(posts[1].path).toBe('/v25.0/1789/media_publish');
   });
 

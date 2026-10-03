@@ -11,8 +11,15 @@
       "sentence": "With a rate cut already [[priced in]], stocks barely moved."
     },
     {
-      "id": "s02-quiz-nonplussed",
+      "id": "s03-tip-phrases",
       "date": "2026-10-05",
+      "t": "tip",
+      "title": "Look up the [[phrase]], not the word.",
+      "body": "“Priced in” means something “priced” and “in” never will. Select the whole phrase."
+    },
+    {
+      "id": "s02-quiz-nonplussed",
+      "date": "2026-10-06",
       "t": "quiz",
       "question": "What does [[“nonplussed”]] really mean?",
       "options": [
@@ -20,13 +27,6 @@
         "So confused you can't react",
         "Bored"
       ]
-    },
-    {
-      "id": "s03-tip-phrases",
-      "date": "2026-10-06",
-      "t": "tip",
-      "title": "Look up the [[phrase]], not the word.",
-      "body": "“Priced in” means something “priced” and “in” never will. Select the whole phrase."
     },
     {
       "id": "s04-low-hanging-fruit",
@@ -38,20 +38,20 @@
       "sentence": "Let's start with the [[low-hanging fruit]]."
     },
     {
-      "id": "s05-teaser-contracts",
-      "date": "2026-10-08",
-      "t": "teaser",
-      "title": "5 words in [[every contract]] you sign.",
-      "body": "New post today. Tap our profile, and save it before your next lease or job offer."
-    },
-    {
       "id": "s06-hallucination",
-      "date": "2026-10-09",
+      "date": "2026-10-08",
       "t": "word",
       "word": "hallucination",
       "say": "noun · AI",
       "meaning": "When an AI states something false as if it were true.",
       "sentence": "The chatbot's citation was a [[hallucination]]."
+    },
+    {
+      "id": "s05-teaser-contracts",
+      "date": "2026-10-09",
+      "t": "teaser",
+      "title": "5 words in [[every contract]] you sign.",
+      "body": "New post today. Tap our profile, and save it before your next lease or job offer."
     },
     {
       "id": "s07-tip-revisit",
@@ -70,8 +70,17 @@
       "sentence": "Retries are safe because every write is [[idempotent]]."
     },
     {
-      "id": "s09-quiz-on-the-fence",
+      "id": "s10-stagflation",
       "date": "2026-10-12",
+      "t": "word",
+      "word": "stagflation",
+      "say": "noun",
+      "meaning": "High inflation and weak growth at the same time.",
+      "sentence": "Investors fear a return of [[stagflation]]."
+    },
+    {
+      "id": "s09-quiz-on-the-fence",
+      "date": "2026-10-13",
       "t": "quiz",
       "question": "Someone is [[“on the fence”]]. They are…",
       "options": [
@@ -81,24 +90,24 @@
       ]
     },
     {
-      "id": "s10-stagflation",
-      "date": "2026-10-13",
+      "id": "s13-churn",
+      "date": "2026-10-14",
       "t": "word",
-      "word": "stagflation",
-      "say": "noun",
-      "meaning": "High inflation and weak growth at the same time.",
-      "sentence": "Investors fear a return of [[stagflation]]."
+      "word": "churn",
+      "say": "noun · business",
+      "meaning": "The share of customers who stop paying in a period.",
+      "sentence": "Monthly [[churn]] fell to 2%."
     },
     {
       "id": "s11-tip-abstract",
-      "date": "2026-10-14",
+      "date": "2026-10-15",
       "t": "tip",
       "title": "Read the [[abstract and conclusion]] first.",
       "body": "Then the figures. Then decide if the rest is worth your time. More in today's post."
     },
     {
       "id": "s12-quiz-epitome",
-      "date": "2026-10-15",
+      "date": "2026-10-16",
       "t": "quiz",
       "question": "How do you say [[“epitome”]]?",
       "options": [
@@ -108,17 +117,8 @@
       ]
     },
     {
-      "id": "s13-churn",
-      "date": "2026-10-16",
-      "t": "word",
-      "word": "churn",
-      "say": "noun · business",
-      "meaning": "The share of customers who stop paying in a period.",
-      "sentence": "Monthly [[churn]] fell to 2%."
-    },
-    {
       "id": "s14-teaser-free",
-      "date": "2026-10-17",
+      "date": "2026-10-18",
       "t": "teaser",
       "title": "Everything Glossa does, [[free.]]",
       "body": "Our two-week recap is live tonight. Link in bio to try it."

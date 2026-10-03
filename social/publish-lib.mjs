@@ -44,6 +44,11 @@ export function imageUrls(post, baseUrl) {
   return post.slides.map((_, i) => `${baseUrl.replace(/\/+$/, '')}/social/${post.id}-${i + 1}.jpg`);
 }
 
+/** A reel's video on the site: website/social/reels/<id>.mp4. */
+export function videoUrl(post, baseUrl) {
+  return `${baseUrl.replace(/\/+$/, '')}/social/reels/${post.id}.mp4`;
+}
+
 export function storyUrl(story, baseUrl) {
   return `${baseUrl.replace(/\/+$/, '')}/social/stories/${story.id}.jpg`;
 }
@@ -136,6 +141,18 @@ export class InstagramClient {
       container = (await this.call('POST', `${id}/media`, { media_type: 'CAROUSEL', children: children.join(','), caption })).id;
     }
     await this.waitFinished(container, 120_000);
+    const media = await this.call('POST', `${id}/media_publish`, { creation_id: container });
+    const info = await this.call('GET', media.id, { fields: 'permalink' }).catch(() => ({}));
+    return { id: media.id, permalink: info.permalink || '' };
+  }
+
+  /** Publishes one reel from a public MP4 (9:16), also shown in the feed. Returns { id, permalink }. */
+  async publishReel({ videoUrl, caption, thumbOffsetMs }) {
+    const id = await this.ensureUser();
+    const params = { media_type: 'REELS', video_url: videoUrl, caption, share_to_feed: 'true' };
+    if (thumbOffsetMs !== undefined) params.thumb_offset = String(thumbOffsetMs);
+    const container = (await this.call('POST', `${id}/media`, params)).id;
+    await this.waitFinished(container, 420_000);
     const media = await this.call('POST', `${id}/media_publish`, { creation_id: container });
     const info = await this.call('GET', media.id, { fields: 'permalink' }).catch(() => ({}));
     return { id: media.id, permalink: info.permalink || '' };
