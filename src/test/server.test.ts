@@ -374,3 +374,100 @@ describe('reasoning effort', () => {
     ]);
   });
 });
+
+describe('admin dashboard', () => {
+  const form = (p: string, body: Record<string, string>, headers: Record<string, string> = {}) =>
+    fetch(base + p, { method: 'POST', redirect: 'manual', headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...headers }, body: new URLSearchParams(body).toString() });
+  const restart = async (env: Record<string, string>) => {
+    api.close();
+    api = start(env);
+    base = `http://127.0.0.1:${await listen(api)}`;
+  };
+
+  it('does not exist unless a password is configured', async () => {
+    const res = await fetch(`${base}/admin`);
+    expect(res.status).toBe(404);
+  });
+
+  it('shows only a login page to strangers, on every admin URL', async () => {
+    await restart({ ADMIN_PASSWORD: 'correct horse' });
+    for (const p of ['/admin', '/admin/', '/admin/data', '/admin/anything?days=30']) {
+      const res = await fetch(base + p, { redirect: 'manual' });
+      expect(res.status).toBe(401);
+      const html = await res.text();
+      expect(html).toContain('Sign in');
+      expect(html).not.toContain('Unique visitors');
+      expect(res.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+      expect(res.headers.get('cache-control')).toBe('no-store');
+    }
+  });
+
+  it('signs in with the right credentials, sets a hardened cookie, and logs out', async () => {
+    await restart({ ADMIN_PASSWORD: 'correct horse' });
+    const bad = await form('/admin/login', { username: 'admin', password: 'nope' });
+    expect(bad.status).toBe(401);
+    expect(await bad.text()).toContain('Wrong username or password');
+    const ok = await form('/admin/login', { username: 'admin', password: 'correct horse' });
+    expect(ok.status).toBe(303);
+    const cookie = ok.headers.get('set-cookie') || '';
+    expect(cookie).toMatch(/glossa_admin=\d+\.[\w-]+; Path=\/admin; HttpOnly; SameSite=Strict/);
+    const session = cookie.split(';')[0];
+    const dash = await fetch(`${base}/admin?days=7`, { headers: { cookie: session } });
+    expect(dash.status).toBe(200);
+    const html = await dash.text();
+    expect(html).toContain('Unique visitors');
+    expect(html).toContain('Funnel · last 7 days');
+    const out = await form('/admin/logout', {}, { cookie: session });
+    expect(out.headers.get('set-cookie')).toContain('Max-Age=0');
+  });
+
+  it('rejects forged or tampered session cookies', async () => {
+    await restart({ ADMIN_PASSWORD: 'correct horse' });
+    const ok = await form('/admin/login', { username: 'admin', password: 'correct horse' });
+    const [name, value] = (ok.headers.get('set-cookie') || '').split(';')[0].split('=');
+    const [exp, sig] = value.split('.');
+    for (const forged of [`${name}=${Number(exp) + 999999}.${sig}`, `${name}=${exp}.${sig.slice(0, -2)}xx`, `${name}=9999999999999.abc`, `${name}=`]) {
+      const res = await fetch(`${base}/admin`, { headers: { cookie: forged } });
+      expect(res.status).toBe(401);
+    }
+  });
+
+  it('locks sign-in after 5 wrong passwords, even for the right one', async () => {
+    await restart({ ADMIN_PASSWORD: 'correct horse' });
+    for (let i = 0; i < 5; i++) await form('/admin/login', { username: 'admin', password: `guess${i}` });
+    const locked = await form('/admin/login', { username: 'admin', password: 'correct horse' });
+    expect(locked.status).toBe(429);
+    expect(await locked.text()).toContain('Too many attempts');
+  });
+
+  it('counts downloads, installs (once each), visits and uninstalls, and escapes what it shows', async () => {
+    await restart({ ADMIN_PASSWORD: 'correct horse' });
+    const ua = { 'User-Agent': 'Mozilla/5.0 Chrome/140' };
+    const dl = await fetch(`${base}/get`, { redirect: 'manual', headers: ua });
+    expect(dl.status).toBe(302);
+    expect(dl.headers.get('location')).toBe('/download/glossa-extension.zip');
+    await fetch(`${base}/get`, { redirect: 'manual' }); // no user agent: treated as a bot, not counted
+    await post('/v1/installed', {}, { 'X-Glossa-Install': 'install-aaaa-0001' });
+    await post('/v1/installed', {}, { 'X-Glossa-Install': 'install-aaaa-0001' });
+    const hit = (body: unknown, extra: Record<string, string> = {}) =>
+      fetch(`${base}/v1/hit`, { method: 'POST', headers: { ...ua, 'Content-Type': 'text/plain', ...extra }, body: JSON.stringify(body) });
+    await hit({ p: '/install', r: 'https://news.ycombinator.com/item?id=1' });
+    await hit({ p: '/', r: '' });
+    await hit({ p: '/goodbye', u: 1 });
+    await hit({ p: '/<script>alert(1)</script>', r: 'https://<img onerror=x>/' });
+    await fetch(`${base}/v1/feedback`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: 'other', message: '<script>steal()</script> nice' }) });
+
+    const ok = await form('/admin/login', { username: 'admin', password: 'correct horse' });
+    const html = await (await fetch(`${base}/admin`, { headers: { cookie: (ok.headers.get('set-cookie') || '').split(';')[0] } })).text();
+    const kpi = (label: string) => html.match(new RegExp(`<b>([\\d,]+)</b><span>${label}</span>`))?.[1];
+    expect(kpi('Downloads')).toBe('1');
+    expect(kpi('Installs')).toBe('1');
+    expect(kpi('Uninstalls')).toBe('1');
+    expect(kpi('Page views')).toBe('4');
+    expect(kpi('Unique visitors')).toBe('1');
+    expect(html).toContain('news.ycombinator.com');
+    expect(html).toContain('(other)');
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('&lt;script&gt;steal()&lt;/script&gt; nice');
+  });
+});

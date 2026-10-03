@@ -239,6 +239,8 @@ async function writeVercelOutput() {
       { src: '/assets/(.*)', headers: { 'Cache-Control': 'public, max-age=31536000, immutable' }, continue: true },
       { src: '/download/(.*)', headers: { 'Cache-Control': 'no-cache', 'Content-Disposition': 'attachment' }, continue: true },
       { src: '/health', dest: '/api?__path=/health' },
+      { src: '/get', dest: '/api?__path=/get' },
+      { src: '/admin(/.*)?', dest: '/api?__path=/admin$1' },
       { src: '/v1/(.*)', dest: '/api?__path=/v1/$1' },
       { src: '/api(?:/.*)?', status: 404, dest: '/404.html' },
       { handle: 'filesystem' },

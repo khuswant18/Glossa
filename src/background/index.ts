@@ -5,9 +5,9 @@
  */
 
 import { warmUp } from '../ai/hosted';
-import { WEBSITE_URL } from '../shared/brand';
+import { API_BASE, VERSION, WEBSITE_URL } from '../shared/brand';
 import { looksLikePdf } from '../shared/pdf';
-import { DEFAULT_SETTINGS, KEYS, mergeSettings, randomId, setNotice, setPending } from '../shared/storage';
+import { DEFAULT_SETTINGS, KEYS, getInstallId, mergeSettings, randomId, setNotice, setPending } from '../shared/storage';
 import type { CapturedSelection, Message, PanelNotice, Settings, Trigger } from '../shared/types';
 
 const MENU_ID = 'glossa-explain';
@@ -37,11 +37,27 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   });
   if (details.reason === 'install') {
     chrome.tabs.create({ url: chrome.runtime.getURL('welcome.html') }).catch(() => undefined);
+    void pingInstalled();
   }
   if (/^https:\/\//.test(WEBSITE_URL)) {
-    chrome.runtime.setUninstallURL(`${WEBSITE_URL}/goodbye`);
+    // ?u=1 lets the site count uninstalls (anonymously) apart from ordinary visits to the page.
+    chrome.runtime.setUninstallURL(`${WEBSITE_URL}/goodbye?u=1`);
   }
 });
+
+/** One anonymous "installed" ping (counted once per install id) so downloads can be compared with real installs. */
+async function pingInstalled(): Promise<void> {
+  try {
+    const id = await getInstallId();
+    await fetch(`${API_BASE.replace(/\/+$/, '')}/v1/installed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Glossa-Install': id, 'X-Glossa-Version': VERSION },
+      body: '{}',
+    });
+  } catch {
+    // Offline or server unreachable: not worth retrying.
+  }
+}
 
 chrome.tabs.onRemoved.addListener((tabId) => lastSelectionFrame.delete(tabId));
 

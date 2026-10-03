@@ -424,7 +424,7 @@ const install = page(
 
   <div class="block block-cream">
     <ol class="install-steps">
-      <li><div><b>Download</b><a href="/download/glossa-extension.zip" download>Download Glossa (zip)</a> and unzip it.</div></li>
+      <li><div><b>Download</b><a href="/get" download="glossa-extension.zip">Download Glossa (zip)</a> and unzip it.</div></li>
       <li><div><b>Open extensions</b>Go to <code>chrome://extensions</code> and switch on <b>Developer mode</b> in the top-right corner.</div></li>
       <li><div><b>Load it</b>Click <b>Load unpacked</b> and choose the unzipped folder. A welcome tab opens with a practice paragraph.</div></li>
       <li><div><b>Pin it</b>Open the puzzle-piece menu in the toolbar and pin Glossa so it’s one click away.</div></li>
@@ -492,6 +492,7 @@ const privacy = page(
   <h2>What our servers keep</h2>
   <p>We don’t store the text you select or the answers. To enforce the free allowance we keep a counter per install ID and per IP address, reset daily. Request logs record method, path, status and timing only, never content. Feedback you send from the feedback page is stored so we can read it.</p>
   <p>Unless you opt out, we also keep anonymous daily totals: how many lookups and follow-ups there were, how many were repeat lookups, how many installs were active, how many have a word list of 10 or more, and how many came back after 7 and 30 days. Installs are counted through a one-way hash of the install ID; no text, URLs or words are stored. Daily totals are kept for about four months, and the hashed first-seen date for about thirteen.</p>
+  <p>On this website we count visits without cookies: the page path, the site that linked to it, and the visitor’s country as reported by our host. Unique visitors are counted with a hash that changes every day, so no one can be followed from one day to the next, and IP addresses are never stored. We also count downloads of the extension, one anonymous “installed” signal sent once when the extension is installed (it carries only the random install ID), and visits to the page that opens after uninstalling.</p>
   <p>We use this information only to provide and improve Glossa. We don’t sell it, share it for advertising, or use your text to train models.</p>
 
   <h2>What stays in your browser</h2>
@@ -618,8 +619,16 @@ const demoFrame = `<!doctype html><html lang="en"><head><meta charset="utf-8"><t
 // Runs in <head>, before first paint, so reveal animations never flash.
 const bootJs = `document.documentElement.classList.add('js');\n`;
 
-const siteJs = `// Glossa site: nav, scroll reveal, smooth FAQ, feedback form. No tracking.
+const siteJs = `// Glossa site: nav, scroll reveal, smooth FAQ, feedback form, and an anonymous visit count
+// (path + referring site only; no cookies, no IP stored).
 (function () {
+  try {
+    if (!navigator.webdriver) {
+      var hit = JSON.stringify({ p: location.pathname, r: document.referrer, u: /[?&]u=1/.test(location.search) ? 1 : 0 });
+      if (!(navigator.sendBeacon && navigator.sendBeacon('/v1/hit', hit))) fetch('/v1/hit', { method: 'POST', body: hit, keepalive: true });
+    }
+  } catch (e) {}
+
   var nav = document.getElementById('nav');
   var toggle = document.getElementById('nav-toggle');
   var links = document.getElementById('nav-links');
@@ -717,7 +726,7 @@ const files = {
   'demo-frame.html': demoFrame,
   'boot.js': bootJs,
   'site.js': siteJs,
-  'robots.txt': `User-agent: *\nAllow: /\nDisallow: /goodbye\n\nSitemap: ${SITE_URL}/sitemap.xml\n`,
+  'robots.txt': `User-agent: *\nAllow: /\nDisallow: /goodbye\nDisallow: /admin\n\nSitemap: ${SITE_URL}/sitemap.xml\n`,
   'sitemap.xml': sitemap(),
 };
 fs.mkdirSync(out, { recursive: true });

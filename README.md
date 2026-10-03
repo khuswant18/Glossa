@@ -67,6 +67,7 @@ The whole product deploys as one Vercel project: the website is static, `/v1/*` 
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | strongly recommended | Shared rate limits across serverless instances (Vercel Marketplace → Upstash). Without them limits are per instance. |
 | `DAILY_LIMIT` / `IP_DAILY_LIMIT` / `BURST_PER_MINUTE` | no | Defaults 100 / 400 / 20 |
 | `STATS_TOKEN` | no | Long random string. Enables `GET /v1/stats?days=30` (send `Authorization: Bearer <token>`): anonymous daily lookups, follow-ups, repeat lookups, active/new installs, installs with 10+ words, D7/D30 retention per cohort. Counts live in Upstash when configured. |
+| `ADMIN_USER` / `ADMIN_PASSWORD` | no | Turns on the private dashboard at `/admin` (traffic, downloads, installs, uninstalls, usage, retention, feedback). Empty password = `/admin` is off. 5 failed logins per IP (50 overall) per 15 minutes lock sign-in. |
 | `GLOSSA_API_BASE` | no | Only if you use a custom domain: `https://glossa.example.com`. Defaults to the project's production URL. |
 
 Users install from the website: download the zip, unzip, `chrome://extensions` → Developer mode → Load unpacked. Chrome only allows one-click installs from the Chrome Web Store; to publish there, upload `release/glossa-extension-<version>.zip` (remove the `key` field first; the store assigns its own id, then update `ALLOWED_EXTENSION_IDS`).

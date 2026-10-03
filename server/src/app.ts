@@ -18,6 +18,7 @@ import {
 import type { ExplainRequest, FollowUpRequest } from '../../src/shared/types';
 import { checkQuestion, guardExplanation, scrubExplanation, scrubText, secretsFor } from '../../src/shared/guard';
 import { MemoryStats, RedisStats, resilientStats } from './stats';
+import { clearedCookie, credentialsMatch, makeSession, renderDashboard, renderLogin, sessionCookie, validSession } from './admin';
 
 export interface ServerConfig {
   port: number;
@@ -41,6 +42,11 @@ export interface ServerConfig {
   log: boolean;
   /** Bearer token for GET /v1/stats; empty disables the endpoint. */
   statsToken: string;
+  /** Private dashboard at /admin. Disabled (404) when no password is set. */
+  adminUser: string;
+  adminPassword: string;
+  /** Signs admin sessions; derived from the other secrets when not set. */
+  adminSecret: string;
 }
 
 export function configFromEnv(env: NodeJS.ProcessEnv, websiteDir: string): ServerConfig {
@@ -68,6 +74,9 @@ export function configFromEnv(env: NodeJS.ProcessEnv, websiteDir: string): Serve
     trustProxy: !!env.VERCEL || env.TRUST_PROXY === '1',
     log: env.LOG !== '0',
     statsToken: env.STATS_TOKEN || '',
+    adminUser: env.ADMIN_USER || 'admin',
+    adminPassword: env.ADMIN_PASSWORD || '',
+    adminSecret: env.ADMIN_SECRET || '',
   };
 }
 
@@ -623,6 +632,16 @@ export function createHandler(cfg: ServerConfig): Handler {
     }
 
     try {
+      if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+        await handleAdmin(req, res, url);
+        return;
+      }
+      if (pathname === '/get' && (req.method === 'GET' || req.method === 'HEAD')) {
+        // The website's Download button: count it, then hand over the zip.
+        if (req.method === 'GET' && !isBot(req)) await stats.event('download');
+        res.writeHead(302, { Location: '/download/glossa-extension.zip', 'Cache-Control': 'no-store' }).end();
+        return;
+      }
       if (pathname === '/health') {
         send(res, 200, { ok: true, service: 'glossa' });
       } else if (pathname === '/v1/usage' && req.method === 'GET') {
@@ -632,6 +651,12 @@ export function createHandler(cfg: ServerConfig): Handler {
         await handleStats(req, res, url);
       } else if (pathname === '/v1/feedback' && req.method === 'POST') {
         await handleFeedback(req, res);
+      } else if (pathname === '/v1/installed' && req.method === 'POST') {
+        // One anonymous ping when the extension is installed; counted once per install.
+        await stats.event('install', installId(req));
+        send(res, 200, { ok: true });
+      } else if (pathname === '/v1/hit' && req.method === 'POST') {
+        await handleHit(req, res);
       } else if ((pathname === '/v1/explain' || pathname === '/v1/follow-up') && req.method === 'POST') {
         await handleAi(req, res, pathname);
       } else if (isApi) {
@@ -763,6 +788,130 @@ export function createHandler(cfg: ServerConfig): Handler {
     send(res, 200, { days: await stats.report(Number(url.searchParams.get('days')) || 30) });
   }
 
+  // ---- website traffic ---------------------------------------------------------
+
+  function isBot(req: http.IncomingMessage): boolean {
+    const ua = String(req.headers['user-agent'] || '');
+    // Real browsers all send "Mozilla/…"; scripts, crawlers and link previewers usually don't or say so.
+    return !/Mozilla\//.test(ua) || /bot|crawl|spider|slurp|preview|monitor|headless|lighthouse/i.test(ua);
+  }
+
+  // Unique visitors are counted with a hash that changes every day, so nobody can be followed across days.
+  const visitorSalt = crypto.createHash('sha256').update(`visitor:${cfg.statsToken}:${cfg.upstreamKey}:${cfg.adminPassword}`).digest('hex');
+
+  async function handleHit(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+    const body = (await readJson(req, 2048).catch(() => null)) as Record<string, unknown> | null;
+    if (isBot(req) || !body) {
+      res.writeHead(204).end();
+      return;
+    }
+    const rawPath = typeof body.p === 'string' ? body.p : '/';
+    const pagePath = /^\/[a-z0-9/-]{0,60}$/.test(rawPath) ? rawPath.replace(/\/+$/, '') || '/' : '(other)';
+    let ref = '';
+    try {
+      const host = typeof body.r === 'string' && body.r ? new URL(body.r).hostname.replace(/^www\./, '') : '';
+      const own = String(req.headers.host || '').split(':')[0].replace(/^www\./, '');
+      if (host && host !== own && /^[a-z0-9.-]{1,80}$/i.test(host)) ref = host.toLowerCase();
+    } catch {
+      // not a URL
+    }
+    const cc = String(req.headers['x-vercel-ip-country'] || '').toUpperCase();
+    const day = new Date().toISOString().slice(0, 10);
+    const visitor = crypto
+      .createHash('sha256')
+      .update(`${visitorSalt}:${day}:${clientIp(req, cfg.trustProxy)}:${req.headers['user-agent'] || ''}`)
+      .digest('hex')
+      .slice(0, 20);
+    await stats.hit({ path: pagePath, ref: ref || undefined, country: /^[A-Z]{2}$/.test(cc) ? cc : undefined, visitor });
+    // The uninstall page opens with ?u=1 (set by the extension).
+    if (pagePath === '/goodbye' && body.u) await stats.event('uninstall');
+    res.writeHead(204).end();
+  }
+
+  // ---- admin dashboard -------------------------------------------------------------
+
+  const adminSecret =
+    cfg.adminSecret ||
+    crypto.createHash('sha256').update(`admin-session:${cfg.adminUser}:${cfg.adminPassword}:${cfg.statsToken}:${cfg.upstreamKey}`).digest('hex');
+
+  function sendHtml(res: http.ServerResponse, status: number, html: string, headers: Record<string, string> = {}): void {
+    res.writeHead(status, {
+      'Content-Type': MIME['.html'],
+      'Cache-Control': 'no-store',
+      'X-Robots-Tag': 'noindex, nofollow',
+      'X-Frame-Options': 'DENY',
+      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+      'Referrer-Policy': 'no-referrer',
+      ...headers,
+    });
+    res.end(html);
+  }
+
+  async function readForm(req: http.IncomingMessage): Promise<URLSearchParams> {
+    const pre = (req as http.IncomingMessage & { body?: unknown }).body;
+    if (pre && typeof pre === 'object' && !Buffer.isBuffer(pre)) return new URLSearchParams(pre as Record<string, string>);
+    if (typeof pre === 'string') return new URLSearchParams(pre);
+    const chunks: Buffer[] = [];
+    let size = 0;
+    for await (const chunk of req) {
+      size += (chunk as Buffer).length;
+      if (size > 4096) throw new HttpError(413, 'invalid_request', 'Request is too large.');
+      chunks.push(chunk as Buffer);
+    }
+    return new URLSearchParams(Buffer.concat(chunks).toString('utf8'));
+  }
+
+  async function handleAdmin(req: http.IncomingMessage, res: http.ServerResponse, url: URL): Promise<void> {
+    if (!cfg.adminPassword) {
+      // Not configured: behave like any unknown page.
+      serveStatic(req, res, '/__missing__');
+      return;
+    }
+    const secure = req.headers['x-forwarded-proto'] === 'https' || cfg.publicOrigin.startsWith('https:');
+    const signedIn = validSession(req.headers.cookie, adminSecret);
+    const pathname = url.pathname.replace(/\/+$/, '') || '/admin';
+
+    if (pathname === '/admin/login' && req.method === 'POST') {
+      const ip = clientIp(req, cfg.trustProxy);
+      const now = Date.now();
+      const bucket = Math.floor(now / (15 * 60 * 1000));
+      const ipKey = `adm:${ip}:${bucket}`;
+      const allKey = `adm:all:${bucket}`;
+      const [ipFails, allFails] = await Promise.all([limiter.peek(ipKey, now), limiter.peek(allKey, now)]);
+      if (ipFails.count >= 5 || allFails.count >= 50) {
+        sendHtml(res, 429, renderLogin({ error: 'Too many attempts. Try again in 15 minutes.' }), { 'Retry-After': '900' });
+        return;
+      }
+      const form = await readForm(req);
+      if (credentialsMatch(cfg.adminUser, cfg.adminPassword, form.get('username') || '', form.get('password') || '')) {
+        res.writeHead(303, { Location: '/admin', 'Set-Cookie': sessionCookie(makeSession(adminSecret), secure), 'Cache-Control': 'no-store' }).end();
+        return;
+      }
+      await Promise.all([limiter.take(ipKey, now), limiter.take(allKey, now)]);
+      sendHtml(res, 401, renderLogin({ error: 'Wrong username or password.' }));
+      return;
+    }
+
+    if (pathname === '/admin/logout' && req.method === 'POST') {
+      res.writeHead(303, { Location: '/admin', 'Set-Cookie': clearedCookie(secure), 'Cache-Control': 'no-store' }).end();
+      return;
+    }
+
+    if (pathname === '/admin' && (req.method === 'GET' || req.method === 'HEAD')) {
+      if (!signedIn) {
+        sendHtml(res, 401, renderLogin());
+        return;
+      }
+      const days = [7, 30, 90].includes(Number(url.searchParams.get('days'))) ? Number(url.searchParams.get('days')) : 30;
+      sendHtml(res, 200, renderDashboard(await stats.summary(days), days));
+      return;
+    }
+
+    // Anything else under /admin: the login page for strangers, a redirect for the admin.
+    if (signedIn) res.writeHead(303, { Location: '/admin' }).end();
+    else sendHtml(res, 401, renderLogin());
+  }
+
   async function handleFeedback(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     const ipKey = `fb:${clientIp(req, cfg.trustProxy)}`;
     if ((await limiter.peek(ipKey)).count >= 10) {
@@ -773,7 +922,9 @@ export function createHandler(cfg: ServerConfig): Handler {
     const message = optStr(body?.message, 2000, 'message') || '';
     if (!reason.trim() && !message.trim()) throw new HttpError(400, 'invalid_request', 'Feedback is empty.');
     await limiter.take(ipKey);
-    const entry = JSON.stringify({ at: new Date().toISOString(), reason, message });
+    const at = new Date().toISOString();
+    await stats.feedback({ at, reason, message });
+    const entry = JSON.stringify({ at, reason, message });
     if (cfg.feedbackFile) {
       await fs.promises.mkdir(path.dirname(cfg.feedbackFile), { recursive: true });
       await fs.promises.appendFile(cfg.feedbackFile, entry + '\n');

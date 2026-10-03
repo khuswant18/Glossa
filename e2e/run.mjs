@@ -1151,9 +1151,11 @@ async function main() {
       for (const href of links) {
         if (!href || /^(https?:|mailto:)/.test(href)) continue;
         const clean = href.split('#')[0] || '/';
-        if (clean.startsWith('/download/')) {
+        if (clean.startsWith('/download/') || clean === '/get') {
+          // /get counts the download and redirects to the zip.
           const r = await fetch(`${API}${clean}`);
           eq(r.status, 200, `download ${clean}`);
+          eq(r.headers.get('content-type'), 'application/zip', `download type ${clean}`);
           continue;
         }
         if (!seen.has(clean)) queue.push(clean);
