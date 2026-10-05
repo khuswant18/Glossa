@@ -137,3 +137,66 @@ export const TEMPLATES = {
     doc(`<div class="cta"><h1>${rich(s.title || 'Select. Understand. [[Remember.]]')}</h1><p class="sub">${rich(s.sub || 'Glossa explains anything you select, grounded in the page, and keeps every word you look up.')}</p>
       <span class="pill">${esc(s.button || 'Free at glossa.wovenbit.tech')}</span><p class="small">${esc(s.small || 'Chrome extension · no API key · link in bio')}</p></div>`, meta),
 };
+
+/* Aesthetic slides (1080×1350) in the reels' look: warm dark, soft light, film grain, serif type.
+   [[x]] here becomes lime italic instead of a highlight. */
+const SERIF = font('@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2');
+const SERIF_I = font('@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2');
+const soft = (s = '') => esc(s).replace(/\[\[(.+?)\]\]/g, '<i>$1</i>');
+const GRAIN = `url("data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .55 0"/></filter><rect width="300" height="300" filter="url(#n)"/></svg>')}")`;
+const AESTHETIC_CSS = `
+@font-face { font-family: Serif; src: url(data:font/woff2;base64,${SERIF}) format('woff2'); font-style: normal; }
+@font-face { font-family: Serif; src: url(data:font/woff2;base64,${SERIF_I}) format('woff2'); font-style: italic; }
+body { background: #0e0f0d; color: #f3f1ea; }
+.a { position: relative; width: 1080px; height: 1350px; padding: 150px 100px 170px; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+  background: radial-gradient(120% 80% at 50% 42%, #191b16 0%, #0e0f0d 60%, #090a08 100%); }
+.a::before { content: ''; position: absolute; width: 900px; height: 900px; left: 40px; top: -160px; border-radius: 50%; background: radial-gradient(circle, rgba(220,238,177,.16), transparent 65%); }
+.a::after { content: ''; position: absolute; width: 1000px; height: 1000px; left: -380px; top: 620px; border-radius: 50%; background: radial-gradient(circle, rgba(232,190,130,.10), transparent 65%); }
+.a .grain { position: absolute; inset: 0; background-image: ${GRAIN}; opacity: .07; mix-blend-mode: screen; z-index: 3; pointer-events: none; }
+.a > * { position: relative; z-index: 2; }
+.a i { color: #dceeb1; }
+.a .kick { font: 500 24px/1 Mono, monospace; letter-spacing: 7px; text-transform: uppercase; color: #8d9286; }
+.a .word { font-family: Serif; font-style: italic; font-size: 190px; line-height: 1; letter-spacing: -3px; margin-top: 64px; white-space: nowrap; }
+.a .word.long { font-size: 132px; letter-spacing: -2px; }
+.a .rule { width: 520px; height: 3px; margin-top: 34px; background: linear-gradient(90deg, transparent, #dceeb1 18%, #dceeb1 82%, transparent); }
+.a .say { margin-top: 40px; font: 500 28px/1 Mono, monospace; letter-spacing: 2px; color: #a7ab9e; }
+.a .mean { margin-top: 58px; font-family: Serif; font-size: 70px; line-height: 1.12; max-width: 840px; text-wrap: balance; color: #ecebe3; }
+.a .note { margin-top: 52px; font: 500 22px/1.6 Mono, monospace; letter-spacing: 3px; text-transform: uppercase; color: #6f746a; max-width: 820px; }
+.a .title { font-family: Serif; font-size: 128px; line-height: 1.02; letter-spacing: -2px; margin-top: 44px; text-wrap: balance; }
+.a .sub { margin-top: 48px; font-size: 36px; line-height: 1.45; color: #bdbfb5; max-width: 800px; text-wrap: balance; }
+.a .aq { font-family: Serif; font-size: 104px; line-height: 1.06; letter-spacing: -1.5px; text-wrap: balance; }
+.a .aq::before { content: '\\201C'; display: block; font-size: 200px; line-height: .6; color: #dceeb1; margin-bottom: 30px; }
+.a .who { margin-top: 56px; font: 500 26px/1 Mono, monospace; letter-spacing: 5px; text-transform: uppercase; color: #a7ab9e; }
+.a .afoot { position: absolute; left: 100px; right: 100px; bottom: 70px; display: flex; align-items: center; gap: 16px; font-size: 30px; font-weight: 650; z-index: 2; }
+.a .afoot .count { margin-left: auto; font: 500 24px/1 Mono, monospace; color: #6f746a; letter-spacing: 2px; }
+.a .afoot .url { margin-left: auto; font: 500 24px/1 Mono, monospace; color: #8d9286; letter-spacing: 3px; text-transform: uppercase; }
+/* a text post, styled like a social post card */
+.tw { width: 880px; padding: 64px 64px 56px; border-radius: 40px; background: rgba(22,24,21,.92); border: 2px solid #2a2d27; text-align: left; box-shadow: 0 40px 100px rgba(0,0,0,.5); }
+.tw .who2 { display: flex; align-items: center; gap: 22px; }
+.tw .av { width: 88px; height: 88px; border-radius: 50%; background: #dceeb1; display: grid; align-content: center; gap: 9px; padding: 0 22px; }
+.tw .av i { height: 8px; border-radius: 4px; background: #12151a; opacity: .35; } .tw .av i:nth-child(2) { opacity: 1; } .tw .av i:nth-child(3) { width: 62%; }
+.tw .nm { font-size: 38px; font-weight: 700; } .tw .hd { font: 500 26px/1.3 Mono, monospace; color: #7f8479; margin-top: 4px; }
+.tw .txt { margin-top: 44px; font-size: 54px; line-height: 1.35; font-weight: 450; letter-spacing: -.4px; white-space: pre-line; color: #f3f1ea; }
+.tw .txt i { font-style: normal; color: #dceeb1; }
+`;
+
+function adoc(inner, { n = 1, total = 1 } = {}) {
+  const right = total > 1 ? `<span class="count">${n} / ${total}</span>` : '<span class="url">link in bio</span>';
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}${AESTHETIC_CSS}</style></head><body>
+<div class="a">${inner}<div class="afoot"><span class="mark"><i></i><i></i><i></i></span>Glossa${right}</div><div class="grain"></div></div></body></html>`;
+}
+
+Object.assign(TEMPLATES, {
+  /** { kicker, title, sub } */
+  acover: (s, meta) => adoc(`${s.kicker ? `<div class="kick">${esc(s.kicker)}</div>` : ''}<div class="title">${soft(s.title)}</div>${s.sub ? `<p class="sub">${soft(s.sub)}</p>` : ''}`, meta),
+  /** { kicker, word, say, meaning, note } */
+  aword: (s, meta) =>
+    adoc(`${s.kicker ? `<div class="kick">${esc(s.kicker)}</div>` : ''}<div class="word${s.word.length > 9 ? ' long' : ''}">${esc(s.word)}</div><div class="rule"></div>
+      ${s.say ? `<div class="say">${esc(s.say)}</div>` : ''}<div class="mean">${soft(s.meaning)}</div>${s.note ? `<div class="note">${esc(s.note)}</div>` : ''}`, meta),
+  /** { quote, who } */
+  aquote: (s, meta) => adoc(`<div class="aq">${soft(s.quote)}</div>${s.who ? `<div class="who">${esc(s.who)}</div>` : ''}`, meta),
+  /** { text } — a short text post; [[x]] is tinted lime */
+  post: (s, meta) =>
+    adoc(`<div class="tw"><div class="who2"><span class="av"><i></i><i></i><i></i></span><div><div class="nm">Glossa</div><div class="hd">@build_ai18</div></div></div>
+      <div class="txt">${soft(s.text)}</div></div>`, meta),
+});

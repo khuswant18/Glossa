@@ -1,12 +1,12 @@
 name: Instagram
 
-# Posts from social/posts.json at 07:00 and 19:00 IST, and today's story from social/stories.json at 13:00 IST.
+# Posts from social/posts.json at 07:00 and 19:00 IST, and today's story from social/stories.json from 13:00 IST.
 # Images must already be live on the site (they're deployed with the repo).
+# Runs hourly because GitHub often starts scheduled runs hours late or skips them. Each run posts only what
+# is due, never twice, and keeps 5 h between feed posts, so the extra runs are harmless.
 on:
   schedule:
-    - cron: '30 1 * * *' # 07:00 IST: post
-    - cron: '30 7 * * *' # 13:00 IST: story
-    - cron: '30 13 * * *' # 19:00 IST: post
+    - cron: '17 * * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -39,12 +39,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Publish
+      - name: Publish post
+        if: github.event_name == 'schedule' || inputs.mode == 'post'
         run: >
           node scripts/social-publish.mjs
-          ${{ (github.event.schedule == '30 7 * * *' || inputs.mode == 'story') && '--stories' || '' }}
           ${{ inputs.dry_run && '--dry-run' || '' }}
           ${{ inputs.id && format('--id={0}', inputs.id) || '' }}
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          SOCIAL_BASE_URL: https://glossa.wovenbit.tech
+      - name: Publish story
+        if: (github.event_name == 'schedule' && !cancelled()) || inputs.mode == 'story'
+        run: node scripts/social-publish.mjs --stories ${{ inputs.dry_run && '--dry-run' || '' }}
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}

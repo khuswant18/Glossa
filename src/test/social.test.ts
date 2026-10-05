@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 // @ts-expect-error plain ESM helper without types
-import { InstagramClient, buildCaption, duePosts, fingerprint, imageUrls, isPublished, postTime, storyForToday, storyUrl, videoUrl } from '../../social/publish-lib.mjs';
+import { InstagramClient, buildCaption, duePosts, fingerprint, imageUrls, isPublished, postTime, storyForToday, storyTime, storyUrl, tooSoon, videoUrl } from '../../social/publish-lib.mjs';
 
 const queue = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../social/posts.json'), 'utf8'));
 const { stories } = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../social/stories.json'), 'utf8'));
@@ -59,6 +59,14 @@ describe('post queue', () => {
       }
       p.slides.forEach((_: unknown, i: number) => expect(fs.existsSync(path.resolve(__dirname, `../../website/social/${p.id}-${i + 1}.jpg`))).toBe(true));
     }
+  });
+
+  it('hourly runs: posts wait 5 h after the last one, stories wait for 13:00 IST', () => {
+    const now = Date.parse('2026-10-05T13:30:00Z');
+    expect(tooSoon(now - 4 * 3600_000, now)).toBe(true);
+    expect(tooSoon(now - 6 * 3600_000, now)).toBe(false);
+    expect(tooSoon(undefined, now)).toBe(false);
+    expect(storyTime({ date: '2026-10-05' })).toBe(Date.parse('2026-10-05T07:30:00Z'));
   });
 
   it('picks the oldest due post that is not on Instagram yet', () => {

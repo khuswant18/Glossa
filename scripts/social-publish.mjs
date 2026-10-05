@@ -5,7 +5,10 @@
  *   npm run social:publish -- --dry-run    show what would be posted and check the images are live
  *   npm run social:publish -- --id=03-memory   post that one now (still skipped if already posted)
  *   npm run social:publish -- --list       the queue and what's already posted
- *   npm run social:publish -- --stories    post today's story (once a day; skipped if one went up in the last 20 h)
+ *   npm run social:publish -- --stories    post today's story from 13:00 IST (once a day; skipped if one went up in the last 20 h)
+ *
+ * Safe to run often (the workflow runs hourly): it only posts what is due, never the same post twice,
+ * and waits 5 h after the last feed post unless --id is given (MIN_GAP_HOURS).
  *   npm run social:publish -- --check      verify the token and account
  *   npm run social:publish -- --refresh-token  print a fresh 60-day token (put it back in your secrets)
  *
@@ -16,7 +19,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { InstagramClient, buildCaption, duePosts, imageUrls, isPublished, postTime, storyForToday, storyUrl, videoUrl } from '../social/publish-lib.mjs';
+import { InstagramClient, MIN_GAP_HOURS, buildCaption, duePosts, imageUrls, isPublished, postTime, storyForToday, storyTime, storyUrl, tooSoon, videoUrl } from '../social/publish-lib.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const envFile = path.join(root, 'social/.env');
@@ -79,6 +82,10 @@ try {
       console.log('No story planned for today.');
       process.exit(0);
     }
+    if (Date.now() < storyTime(story) && !flag('force')) {
+      console.log(`Today's story goes up from ${ist(storyTime(story))}.`);
+      process.exit(0);
+    }
     const recentStory = (await ig.liveStoryTimes()).some((t) => Date.now() - t < 20 * 3600_000);
     if (recentStory && !flag('force')) {
       console.log('A story already went up in the last 20 hours; skipping.');
@@ -97,7 +104,8 @@ try {
     process.exit(0);
   }
 
-  const recent = await ig.recentCaptions();
+  const media = await ig.recentMedia();
+  const recent = media.map((m) => m.caption);
   if (flag('list')) {
     for (const p of [...queue.posts].sort((a, b) => postTime(a) - postTime(b))) {
       const kind = p.type === 'reel' ? 'reel' : `${p.slides.length} slide${p.slides.length > 1 ? 's' : ''}`;
@@ -115,6 +123,10 @@ try {
     process.exit(0);
   }
 
+  if (!value('id') && tooSoon(media[0]?.time)) {
+    console.log(`"${post.id}" is due, but the last post went up ${((Date.now() - media[0].time) / 3600_000).toFixed(1)} h ago; waiting until ${MIN_GAP_HOURS} h have passed.`);
+    process.exit(0);
+  }
   const caption = buildCaption(post, queue.hashtags);
   if (post.type === 'reel') {
     const url = videoUrl(post, base);

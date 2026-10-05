@@ -53,6 +53,19 @@ export function storyUrl(story, baseUrl) {
   return `${baseUrl.replace(/\/+$/, '')}/social/stories/${story.id}.jpg`;
 }
 
+/** Hours a feed post waits after the previous one, so a late or catch-up run never posts back to back. */
+export const MIN_GAP_HOURS = 5;
+
+/** Whether the last feed post is recent enough that the next one should wait. */
+export function tooSoon(lastPostTime, now = Date.now()) {
+  return Number.isFinite(lastPostTime) && now - lastPostTime < MIN_GAP_HOURS * 3600_000;
+}
+
+/** A story goes up from 13:00 IST (07:30 UTC) on its date. */
+export function storyTime(story) {
+  return Date.parse(`${story.date}T07:30:00Z`);
+}
+
 /** Today's story (UTC date), if any. Stories are only posted on their own day; missed ones are skipped. */
 export function storyForToday(stories, now = Date.now()) {
   const today = new Date(now).toISOString().slice(0, 10);
@@ -100,10 +113,15 @@ export class InstagramClient {
     return this.userId;
   }
 
-  async recentCaptions(limit = 50) {
+  /** Recent feed posts (newest first): [{ caption, time }]. */
+  async recentMedia(limit = 50) {
     const id = await this.ensureUser();
     const data = await this.call('GET', `${id}/media`, { fields: 'caption,timestamp', limit: String(limit) });
-    return (data.data || []).map((m) => m.caption || '');
+    return (data.data || []).map((m) => ({ caption: m.caption || '', time: Date.parse(m.timestamp) }));
+  }
+
+  async recentCaptions(limit = 50) {
+    return (await this.recentMedia(limit)).map((m) => m.caption);
   }
 
   async publishingQuota() {

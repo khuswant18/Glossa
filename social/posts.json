@@ -48,6 +48,53 @@
       "#financetips",
       "#edtech",
       "#glossa"
+    ],
+    "words": [
+      "#vocabulary",
+      "#wordoftheday",
+      "#englishvocabulary",
+      "#learnenglish",
+      "#wordnerd",
+      "#englishwords"
+    ],
+    "mood": [
+      "#aestheticwords",
+      "#beautifulwords",
+      "#logophile",
+      "#darkacademia",
+      "#bookstagram",
+      "#wordnerd",
+      "#glossa"
+    ],
+    "slang": [
+      "#genz",
+      "#genzslang",
+      "#slang",
+      "#internetculture",
+      "#relatable",
+      "#glossa"
+    ],
+    "relatable": [
+      "#relatable",
+      "#readingmemes",
+      "#booklover",
+      "#studentlife",
+      "#overthinking",
+      "#glossa"
+    ],
+    "trend": [
+      "#trending",
+      "#wordsoftheyear",
+      "#internetculture",
+      "#genz",
+      "#glossa"
+    ],
+    "money": [
+      "#personalfinance",
+      "#moneytips",
+      "#budgeting",
+      "#financetips",
+      "#glossa"
     ]
   },
   "posts": [
@@ -1341,6 +1388,644 @@
       "tags": [
         "core",
         "learn"
+      ]
+    },
+    {
+      "id": "32-words-of-the-year",
+      "at": "2026-10-19T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Words of the year 2025",
+          "title": "The internet’s words of the year, [[decoded.]]",
+          "sub": "Picked by the dictionaries themselves. One of them chose “6-7”."
+        },
+        {
+          "t": "term",
+          "word": "slop",
+          "tag": "Merriam-Webster",
+          "sentence": "My feed is 90% AI [[slop]] now.",
+          "meaning": "Low-quality content made in bulk, usually by AI.",
+          "sentenceLabel": "Word of the year"
+        },
+        {
+          "t": "term",
+          "word": "rage bait",
+          "tag": "Oxford",
+          "sentence": "Don’t reply, that post is pure [[rage bait]].",
+          "meaning": "Content made to make you angry, so you engage with it.",
+          "sentenceLabel": "Word of the year"
+        },
+        {
+          "t": "term",
+          "word": "parasocial",
+          "tag": "Cambridge",
+          "sentence": "It’s [[parasocial]]. She doesn’t know you exist.",
+          "meaning": "A one-sided bond with someone famous who doesn’t know you.",
+          "sentenceLabel": "Word of the year"
+        },
+        {
+          "t": "term",
+          "word": "vibe coding",
+          "tag": "Collins",
+          "sentence": "He built the whole app by [[vibe coding]].",
+          "meaning": "Making software by describing it to an AI instead of writing the code.",
+          "sentenceLabel": "Word of the year"
+        },
+        {
+          "t": "term",
+          "word": "6-7",
+          "tag": "Dictionary.com",
+          "sentence": "“How was the test?” “[[6-7]].”",
+          "meaning": "A viral catchphrase from a rap lyric, shouted for fun. It means nothing. That’s the joke.",
+          "sentenceLabel": "Word of the year"
+        },
+        {
+          "t": "cta",
+          "title": "New words every week. [[Decoded.]]"
+        }
+      ],
+      "caption": "the dictionaries have spoken, and one of them picked “6-7” 💀\n\nslop, rage bait, parasocial, vibe coding: swipe for what last year’s words of the year actually mean.\n\nwhich one did you use most? 👇",
+      "tags": [
+        "trend",
+        "words"
+      ]
+    },
+    {
+      "id": "33-tsundoku",
+      "at": "2026-10-19T13:30:00Z",
+      "slides": [
+        {
+          "t": "aword",
+          "word": "tsundoku",
+          "say": "積ん読 · Japanese",
+          "meaning": "buying books and letting them [[pile up, unread.]]",
+          "note": "tsunde · to stack + doku · to read",
+          "kicker": "a word for it"
+        }
+      ],
+      "caption": "this one’s personal 📚\n\ntsundoku: the art of buying books faster than you read them.\n\ntag the friend with a to-read pile taller than them.",
+      "tags": [
+        "mood"
+      ]
+    },
+    {
+      "id": "34-genz-slang",
+      "at": "2026-10-20T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Decoded",
+          "title": "Gen Z slang, [[decoded for your manager.]]",
+          "sub": "Six words you’ll hear this week."
+        },
+        {
+          "t": "term",
+          "word": "delulu",
+          "tag": "adjective",
+          "sentence": "She thinks he’ll text back? [[Delulu]].",
+          "meaning": "Short for delusional. Believing something unrealistic, often playfully.",
+          "sentenceLabel": "In the group chat"
+        },
+        {
+          "t": "term",
+          "word": "aura",
+          "tag": "noun",
+          "sentence": "Walked out mid-argument? +1000 [[aura]].",
+          "meaning": "Your vibe or cool factor. You can gain or lose “aura points”.",
+          "sentenceLabel": "In the group chat"
+        },
+        {
+          "t": "term",
+          "word": "cooked",
+          "tag": "adjective",
+          "sentence": "Exam’s tomorrow and I haven’t started. I’m [[cooked]].",
+          "meaning": "In serious trouble, with no way out.",
+          "sentenceLabel": "In the group chat"
+        },
+        {
+          "t": "term",
+          "word": "it’s giving",
+          "tag": "phrase",
+          "sentence": "That outfit? [[It’s giving]] main character.",
+          "meaning": "It has the vibe of… Used to describe an impression.",
+          "sentenceLabel": "In the group chat"
+        },
+        {
+          "t": "term",
+          "word": "lowkey",
+          "tag": "adverb",
+          "sentence": "I [[lowkey]] want to cancel tonight.",
+          "meaning": "Slightly, or secretly. The opposite of highkey.",
+          "sentenceLabel": "In the group chat"
+        },
+        {
+          "t": "term",
+          "word": "rizz",
+          "tag": "noun",
+          "sentence": "He has zero [[rizz]].",
+          "meaning": "Charm, especially when flirting. Oxford’s word of the year in 2023.",
+          "sentenceLabel": "In the group chat"
+        },
+        {
+          "t": "cta",
+          "title": "Slang or jargon, [[decoded.]]"
+        }
+      ],
+      "caption": "if you’ve ever replied “haha yes” to a text you didn’t understand, this is for you 😭\n\nswipe for six words you’ll hear this week, in plain English.\n\nsend it to someone who’s lowkey cooked.",
+      "tags": [
+        "slang",
+        "words"
+      ]
+    },
+    {
+      "id": "35-one-word",
+      "at": "2026-10-20T13:30:00Z",
+      "slides": [
+        {
+          "t": "post",
+          "text": "me: i’ll just look up [[one]] word\n\nme, 40 minutes later: 23 tabs open, deep in a wikipedia page about medieval bread, still no idea what the article said"
+        }
+      ],
+      "caption": "it was supposed to be one word 🥲\n\nbe honest, how many tabs do you have open right now?",
+      "tags": [
+        "relatable"
+      ]
+    },
+    {
+      "id": "36-untranslatable",
+      "at": "2026-10-21T01:30:00Z",
+      "slides": [
+        {
+          "t": "acover",
+          "kicker": "six feelings",
+          "title": "words english [[doesn’t have.]]",
+          "sub": "swipe slowly."
+        },
+        {
+          "t": "aword",
+          "word": "saudade",
+          "say": "Portuguese",
+          "meaning": "a deep longing for something or someone [[you love and have lost.]]"
+        },
+        {
+          "t": "aword",
+          "word": "hiraeth",
+          "say": "Welsh",
+          "meaning": "homesickness for a home you can’t return to, [[or that never was.]]"
+        },
+        {
+          "t": "aword",
+          "word": "fernweh",
+          "say": "German",
+          "meaning": "an ache for [[faraway places]] you’ve never been."
+        },
+        {
+          "t": "aword",
+          "word": "wabi-sabi",
+          "say": "Japanese",
+          "meaning": "finding beauty in things that are [[imperfect and impermanent.]]"
+        },
+        {
+          "t": "aword",
+          "word": "hygge",
+          "say": "Danish",
+          "meaning": "the cosy contentment of candles, blankets and [[good company.]]"
+        },
+        {
+          "t": "aword",
+          "word": "meraki",
+          "say": "Greek",
+          "meaning": "putting your soul and creativity into [[what you do.]]"
+        },
+        {
+          "t": "acover",
+          "kicker": "save this",
+          "title": "which one is [[yours?]]",
+          "sub": "Glossa explains any word you select, in any language. Free, link in bio."
+        }
+      ],
+      "caption": "some feelings don’t fit in english 🌙\n\nsaudade, hiraeth, fernweh, wabi-sabi, hygge, meraki.\n\nwhich one is yours? save this for a slow day.",
+      "tags": [
+        "mood",
+        "words"
+      ]
+    },
+    {
+      "id": "37-limits-of-language",
+      "at": "2026-10-21T13:30:00Z",
+      "slides": [
+        {
+          "t": "aquote",
+          "quote": "The limits of my language mean the limits of [[my world.]]",
+          "who": "Ludwig Wittgenstein"
+        }
+      ],
+      "caption": "the limits of my language mean the limits of my world.\n\nevery word you learn makes your world a little bigger. 🌍\n\nsave this as a reminder.",
+      "tags": [
+        "mood"
+      ]
+    },
+    {
+      "id": "38-texting-acronyms",
+      "at": "2026-10-22T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Decoded",
+          "title": "Texting acronyms, [[finally explained.]]",
+          "sub": "No more googling mid-conversation."
+        },
+        {
+          "t": "term",
+          "word": "IYKYK",
+          "tag": "acronym",
+          "sentence": "That café? [[IYKYK]].",
+          "meaning": "If you know, you know. A hint at an inside joke or secret.",
+          "sentenceLabel": "In the text"
+        },
+        {
+          "t": "term",
+          "word": "NGL",
+          "tag": "acronym",
+          "sentence": "[[NGL]], that was the best pizza ever.",
+          "meaning": "Not gonna lie. Comes before an honest opinion.",
+          "sentenceLabel": "In the text"
+        },
+        {
+          "t": "term",
+          "word": "FWIW",
+          "tag": "acronym",
+          "sentence": "[[FWIW]], I liked the first draft more.",
+          "meaning": "For what it’s worth. Softens an opinion.",
+          "sentenceLabel": "In the text"
+        },
+        {
+          "t": "term",
+          "word": "TL;DR",
+          "tag": "acronym",
+          "sentence": "[[TL;DR]]: the meeting is cancelled.",
+          "meaning": "Too long; didn’t read. A one-line summary.",
+          "sentenceLabel": "In the text"
+        },
+        {
+          "t": "term",
+          "word": "ICYMI",
+          "tag": "acronym",
+          "sentence": "[[ICYMI]], the deadline moved to Friday.",
+          "meaning": "In case you missed it.",
+          "sentenceLabel": "In the text"
+        },
+        {
+          "t": "term",
+          "word": "IMHO",
+          "tag": "acronym",
+          "sentence": "[[IMHO]], pineapple belongs on pizza.",
+          "meaning": "In my humble opinion. Usually not humble.",
+          "sentenceLabel": "In the text"
+        },
+        {
+          "t": "cta",
+          "title": "Any acronym. [[In context.]]"
+        }
+      ],
+      "caption": "ngl, half of these used to confuse me too 👀\n\nIYKYK, NGL, FWIW, TL;DR, ICYMI, IMHO: swipe for what they mean.\n\nsend this to your parents.",
+      "tags": [
+        "slang",
+        "words"
+      ]
+    },
+    {
+      "id": "39-terms-and-conditions",
+      "at": "2026-10-22T13:30:00Z",
+      "slides": [
+        {
+          "t": "post",
+          "text": "terms and conditions: 14,000 words of legal language\n\nme, having read 0 of them: [[✓ I have read and agree]]"
+        }
+      ],
+      "caption": "we’ve all done it 🫣\n\n(Glossa explains legal words right on the page, for the one time you actually read it.)",
+      "tags": [
+        "relatable"
+      ]
+    },
+    {
+      "id": "40-fancy-words",
+      "at": "2026-10-23T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Decoded",
+          "title": "Fancy words that mean [[simple things.]]",
+          "sub": "Sound smart. Understand everything."
+        },
+        {
+          "t": "term",
+          "word": "ubiquitous",
+          "tag": "adjective",
+          "sentence": "Phones are [[ubiquitous]] now.",
+          "meaning": "Everywhere.",
+          "sentenceLabel": "In the article"
+        },
+        {
+          "t": "term",
+          "word": "ameliorate",
+          "tag": "verb",
+          "sentence": "New steps to [[ameliorate]] the problem.",
+          "meaning": "Make better.",
+          "sentenceLabel": "In the article"
+        },
+        {
+          "t": "term",
+          "word": "obfuscate",
+          "tag": "verb",
+          "sentence": "The report seemed to [[obfuscate]] the losses.",
+          "meaning": "Make unclear, often on purpose.",
+          "sentenceLabel": "In the article"
+        },
+        {
+          "t": "term",
+          "word": "pragmatic",
+          "tag": "adjective",
+          "sentence": "Let’s take a [[pragmatic]] approach.",
+          "meaning": "Practical. Focused on what works.",
+          "sentenceLabel": "In the article"
+        },
+        {
+          "t": "term",
+          "word": "ephemeral",
+          "tag": "adjective",
+          "sentence": "Most trends are [[ephemeral]].",
+          "meaning": "Short-lived.",
+          "sentenceLabel": "In the article"
+        },
+        {
+          "t": "term",
+          "word": "juxtapose",
+          "tag": "verb",
+          "sentence": "The film [[juxtaposes]] wealth and poverty.",
+          "meaning": "Put side by side to compare.",
+          "sentenceLabel": "In the article"
+        },
+        {
+          "t": "cta",
+          "title": "Every fancy word, [[in plain English.]]"
+        }
+      ],
+      "caption": "six fancy words, six simple meanings ✍️\n\nubiquitous just means everywhere. that’s it. that’s the post.\n\nsave it for your next essay.",
+      "tags": [
+        "words"
+      ]
+    },
+    {
+      "id": "41-liminal",
+      "at": "2026-10-23T13:30:00Z",
+      "slides": [
+        {
+          "t": "aword",
+          "word": "liminal",
+          "say": "/ˈlɪm·ɪ·nəl/ · adjective",
+          "meaning": "in between; at a threshold. like an [[empty airport at 3am.]]",
+          "note": "latin · limen, threshold",
+          "kicker": "a word for it"
+        }
+      ],
+      "caption": "empty hallways. airports at 3am. the last day of a trip. ✈️\n\nliminal: the in-between.\n\nwhat’s the most liminal place you’ve been?",
+      "tags": [
+        "mood"
+      ]
+    },
+    {
+      "id": "42-changed-meaning",
+      "at": "2026-10-24T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Then vs now",
+          "title": "Words the internet [[changed forever.]]"
+        },
+        {
+          "t": "term",
+          "word": "ghost",
+          "tag": "verb",
+          "sentence": "He [[ghosted]] me after three dates.",
+          "meaning": "Then: a spirit. Now: suddenly stop replying, with no explanation.",
+          "sentenceLabel": "Now"
+        },
+        {
+          "t": "term",
+          "word": "troll",
+          "tag": "noun",
+          "sentence": "Ignore him, he’s a [[troll]].",
+          "meaning": "Then: a monster from folklore. Now: someone who posts to provoke people.",
+          "sentenceLabel": "Now"
+        },
+        {
+          "t": "term",
+          "word": "viral",
+          "tag": "adjective",
+          "sentence": "Her video went [[viral]] overnight.",
+          "meaning": "Then: caused by a virus. Now: spreading fast online.",
+          "sentenceLabel": "Now"
+        },
+        {
+          "t": "term",
+          "word": "cloud",
+          "tag": "noun",
+          "sentence": "It’s all backed up in the [[cloud]].",
+          "meaning": "Then: water vapour in the sky. Now: storage on someone else’s computers.",
+          "sentenceLabel": "Now"
+        },
+        {
+          "t": "term",
+          "word": "literally",
+          "tag": "adverb",
+          "sentence": "I [[literally]] died laughing.",
+          "meaning": "Then: exactly as stated. Now: also just for emphasis.",
+          "sentenceLabel": "Now"
+        },
+        {
+          "t": "cta",
+          "title": "Words change. [[Keep up.]]"
+        }
+      ],
+      "caption": "ghost used to mean a spirit. now it means he stopped replying. 👻\n\nswipe for five words the internet completely rewrote.",
+      "tags": [
+        "trend",
+        "words"
+      ]
+    },
+    {
+      "id": "43-cardio",
+      "at": "2026-10-24T13:30:00Z",
+      "slides": [
+        {
+          "t": "post",
+          "text": "reading the same sentence [[4 times]] and still not understanding it should count as cardio"
+        }
+      ],
+      "caption": "my daily workout 🏃\n\n(or select the sentence and let Glossa explain it. link in bio.)",
+      "tags": [
+        "relatable"
+      ]
+    },
+    {
+      "id": "44-money-trends",
+      "at": "2026-10-25T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Decoded",
+          "title": "Money trends, [[decoded.]]",
+          "sub": "What everyone on your feed is talking about."
+        },
+        {
+          "t": "term",
+          "word": "doom spending",
+          "tag": "trend",
+          "sentence": "Bad news day, so I’m [[doom spending]].",
+          "meaning": "Shopping to cope with stress or bleak news.",
+          "sentenceLabel": "On your feed"
+        },
+        {
+          "t": "term",
+          "word": "loud budgeting",
+          "tag": "trend",
+          "sentence": "Can’t come, I’m [[loud budgeting]].",
+          "meaning": "Openly saying no to spending because of your money goals.",
+          "sentenceLabel": "On your feed"
+        },
+        {
+          "t": "term",
+          "word": "soft saving",
+          "tag": "trend",
+          "sentence": "I’m [[soft saving]] this year.",
+          "meaning": "Saving less for the far future to enjoy life now.",
+          "sentenceLabel": "On your feed"
+        },
+        {
+          "t": "term",
+          "word": "underconsumption core",
+          "tag": "trend",
+          "sentence": "My 6-year-old phone is very [[underconsumption core]].",
+          "meaning": "Proudly using what you already have instead of buying more.",
+          "sentenceLabel": "On your feed"
+        },
+        {
+          "t": "term",
+          "word": "cash stuffing",
+          "tag": "trend",
+          "sentence": "Rent money goes in envelope one. [[Cash stuffing]].",
+          "meaning": "Budgeting by putting cash into labelled envelopes.",
+          "sentenceLabel": "On your feed"
+        },
+        {
+          "t": "cta",
+          "title": "Money words, [[minus the confusion.]]"
+        }
+      ],
+      "caption": "are you doom spending or loud budgeting this month? 💸\n\nswipe for five money trends, explained.\n\nsend this to your most financially chaotic friend.",
+      "tags": [
+        "money",
+        "trend"
+      ]
+    },
+    {
+      "id": "45-eunoia",
+      "at": "2026-10-25T13:30:00Z",
+      "slides": [
+        {
+          "t": "aword",
+          "word": "eunoia",
+          "say": "/juːˈnɔɪ·ə/ · noun",
+          "meaning": "beautiful thinking; [[a well mind.]]",
+          "note": "often called the shortest english word with all five vowels",
+          "kicker": "a word for it"
+        }
+      ],
+      "caption": "eunoia: beautiful thinking. 🌿\n\nalso often called the shortest english word that uses all five vowels.\n\nsave it for a day you need it.",
+      "tags": [
+        "mood"
+      ]
+    },
+    {
+      "id": "46-work-trends",
+      "at": "2026-10-26T01:30:00Z",
+      "slides": [
+        {
+          "t": "cover",
+          "kicker": "Decoded",
+          "title": "Workplace trends, [[explained.]]",
+          "sub": "What your coworkers are doing."
+        },
+        {
+          "t": "term",
+          "word": "quiet quitting",
+          "tag": "trend",
+          "sentence": "He’s not lazy, he’s [[quiet quitting]].",
+          "meaning": "Doing exactly your job, and nothing extra.",
+          "sentenceLabel": "At work"
+        },
+        {
+          "t": "term",
+          "word": "coffee badging",
+          "tag": "trend",
+          "sentence": "In at 10, out at 10:30. [[Coffee badging]].",
+          "meaning": "Going to the office just long enough to be seen.",
+          "sentenceLabel": "At work"
+        },
+        {
+          "t": "term",
+          "word": "job hugging",
+          "tag": "trend",
+          "sentence": "Hate the job, but I’m [[job hugging]].",
+          "meaning": "Staying in a job you don’t love because leaving feels too risky.",
+          "sentenceLabel": "At work"
+        },
+        {
+          "t": "term",
+          "word": "bare minimum Monday",
+          "tag": "trend",
+          "sentence": "It’s a [[bare minimum Monday]].",
+          "meaning": "Easing into the week by doing only what’s essential.",
+          "sentenceLabel": "At work"
+        },
+        {
+          "t": "term",
+          "word": "quiet cracking",
+          "tag": "trend",
+          "sentence": "Still showing up, but [[quiet cracking]].",
+          "meaning": "Slowly burning out while still doing the job.",
+          "sentenceLabel": "At work"
+        },
+        {
+          "t": "cta",
+          "title": "Work words, [[decoded instantly.]]"
+        }
+      ],
+      "caption": "coffee badging is the most relatable thing on this list ☕\n\nswipe for five workplace trends, explained.\n\ntag a coworker. they’ll know which one.",
+      "tags": [
+        "slang",
+        "work"
+      ]
+    },
+    {
+      "id": "47-sesquipedalian",
+      "at": "2026-10-26T13:30:00Z",
+      "slides": [
+        {
+          "t": "aword",
+          "word": "sesquipedalian",
+          "say": "/ˌsɛs·kwɪ·pɪˈdeɪ·li·ən/ · adjective",
+          "meaning": "using long words. [[like this one.]]",
+          "note": "latin · sesquipedalis, a foot and a half long",
+          "kicker": "a word for it"
+        }
+      ],
+      "caption": "the irony is the point 😌\n\nsesquipedalian: using long words. literally “a foot and a half long”.\n\nfollow for one word a day that makes you sound smarter.",
+      "tags": [
+        "mood",
+        "words"
       ]
     }
   ]
